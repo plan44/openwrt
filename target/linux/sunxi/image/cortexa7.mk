@@ -266,7 +266,9 @@ define Device/myir_myd-yt113x
   DEVICE_MODEL := MYD-YT113X
   DEVICE_PACKAGES := kmod-rtc-sunxi kmod-eeprom-at24 kmod-gpio-pca953x kmod-rtc-rx8025
   SOC := sun8i-t113s
+  IMAGES += emmc.img.gz
   IMAGE/sdcard.img.gz := sunxi-sdcard | append-metadata | gzip
+  IMAGE/emmc.img.gz := boot-scr-emmc | sunxi-emmc | append-metadata | gzip
 endef
 TARGET_DEVICES += myir_myd-yt113x
 
@@ -283,6 +285,8 @@ define Device/rongpin_rp-t113
   DEVICE_MODEL := RP-T113
   DEVICE_PACKAGES:=kmod-rtc-sunxi
   SOC := sun8i-t113s
+  IMAGES += emmc.img.gz
   IMAGE/sdcard.img.gz := sunxi-sdcard | append-metadata | gzip
+  IMAGE/emmc.img.gz := boot-scr-emmc | sunxi-emmc | append-metadata | gzip
 endef
 TARGET_DEVICES += rongpin_rp-t113
