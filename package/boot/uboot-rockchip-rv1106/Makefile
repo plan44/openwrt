@@ -30,7 +30,7 @@ define U-Boot/rv1106-sfc
   NAME:=Luckfox Pico Max
   BOOT_SOC:=rv1106
   BUILD_DEVICES:= \
-    luckfox_pico-max
+    luckfox_pico-max-sfc
   DEPENDS:=+PACKAGE_rv1106-sfc:arm-trusted-firmware-rv1106
   PKG_BUILD_DEPENDS:=arm-trusted-firmware-rockchip-vendor
   DDR_BLOB:=rv11/rv1106_ddr_924MHz_v1.10.bin
@@ -43,7 +43,8 @@ define U-Boot/rv1106-emmc
   NAME:=Luckfox Pico
   BOOT_SOC:=rv1106
   BUILD_DEVICES:= \
-    luckfox_pico
+    luckfox_pico \
+    luckfox_pico-max
   DEPENDS:=+PACKAGE_rv1106-emmc:arm-trusted-firmware-rv1106
   PKG_BUILD_DEPENDS:=arm-trusted-firmware-rockchip-vendor
   DDR_BLOB:=rv11/rv1106_ddr_924MHz_v1.10.bin
