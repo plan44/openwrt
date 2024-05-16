@@ -40,7 +40,10 @@ define Device/luckfox_pico-max
   SUPPORTED_DEVICES := luckfox,pico-max
   SOC := rv1106
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max
-  UBOOT_DEVICE_NAME := rv1106-sfc
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
 
