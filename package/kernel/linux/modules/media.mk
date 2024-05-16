@@ -93,6 +93,20 @@ endef
 
 $(eval $(call KernelPackage,cam-ov9640))
 
+define KernelPackage/cam-sc200ai
+  TITLE:=SmartSens SC200AI sensor
+  KCONFIG:= \
+	CONFIG_VIDEO_SC200AI
+  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/sc200ai.ko
+  AUTOLOAD:=$(call AutoProbe,sc200ai)
+  $(call AddDepends/camera-i2c)
+endef
+
+$(eval $(call KernelPackage,cam-sc200ai))
+
+define KernelPackage/cam-sc3336/description
+  SmartSens SC3336 camera sensor driver based on i2c.
+endef
 
 define KernelPackage/cam-sc2336
   TITLE:=SmartSens SC2336 sensor
