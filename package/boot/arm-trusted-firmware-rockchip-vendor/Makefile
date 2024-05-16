@@ -8,10 +8,10 @@ PKG_NAME:=arm-trusted-firmware-rockchip-vendor
 PKG_RELEASE:=$(AUTORELEASE)
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL=https://github.com/pengphei/rkbin.git
+PKG_SOURCE_URL=https://github.com/ticklab/rkbin.git
 PKG_SOURCE_DATE:=2022-08-01
-PKG_SOURCE_VERSION:=c99ad10789499fabdad3c7741f3bc4de02392246
-PKG_MIRROR_HASH:=96991ae7429027e000dd1ee39ecdb5de0dd841133e9d4cb2440e2f5299346b9d
+PKG_SOURCE_VERSION:=d4686263ba19fcdbb2bf5ab13226f1a0bf0ca389
+PKG_MIRROR_HASH:=2b323ddb964fd3ca5593f428aa65c5246b4a6bf079948c217b2d3a44e2ae4408
 
 PKG_MAINTAINER:=Tianling Shen <cnsztl@immortalwrt.org>
 
