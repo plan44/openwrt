@@ -1,0 +1,15 @@
+Index: ucode-2022-10-18-00af0650/lib/rtnl.c
+===================================================================
+--- ucode-2022-10-18-00af0650.orig/lib/rtnl.c
++++ ucode-2022-10-18-00af0650/lib/rtnl.c
+@@ -55,6 +55,10 @@ limitations under the License.
+ 
+ #define NLM_F_STRICT_CHK (1 << 15)
+ 
++#ifndef AF_MPLS
++#define AF_MPLS 28
++#endif
++
+ /* Can't use net/if.h for declarations as it clashes with linux/if.h
+  * on certain musl versions.
+  * Ref: https://www.openwall.com/lists/musl/2017/04/16/1 */
