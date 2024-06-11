@@ -7,6 +7,43 @@
 
 ROCKCHIP_MENU:=Rockchip support
 
+define KernelPackage/rga3-rockchip
+  TITLE:=Rockchip RGA 2D support
+  SUBMENU:=$(ROCKCHIP_MENU)
+  DEPENDS:=@TARGET_rockchip
+  KCONFIG:= \
+	CONFIG_ROCKCHIP_RGA_ASYNC=y \
+  CONFIG_ROCKCHIP_RGA_PROC_FS=y \
+	CONFIG_ROCKCHIP_RGA_DEBUGGER=n \
+  CONFIG_ROCKCHIP_RGA_DEBUG_FS=n \
+	CONFIG_ROCKCHIP_MULTI_RGA
+  FILES:= $(LINUX_DIR)/drivers/video/rockchip/rga3/rga3.ko
+  AUTOLOAD:=$(call AutoProbe,rga3)
+endef
+
+define KernelPackage/rga3-rockchip/description
+ rga3 support for Rockchip.
+endef
+
+$(eval $(call KernelPackage,rga3-rockchip))
+
+define KernelPackage/rve-rockchip
+  TITLE:=Rockchip RVE support
+  SUBMENU:=$(ROCKCHIP_MENU)
+  DEPENDS:=@TARGET_rockchip
+  KCONFIG:= \
+	CONFIG_ROCKCHIP_RVE_DEBUGGER=n \
+  CONFIG_ROCKCHIP_RVE_PROC_FS=y \
+	CONFIG_ROCKCHIP_RVE
+  FILES:= $(LINUX_DIR)/drivers/video/rockchip/rve/rve.ko
+  AUTOLOAD:=$(call AutoProbe,rve)
+endef
+
+define KernelPackage/rga3-rockchip/description
+ rga3 support for Rockchip.
+endef
+
+$(eval $(call KernelPackage,rga3-rockchip))
 
 define KernelPackage/rknpu-rockchip
   TITLE:=Rockchip NPU support
@@ -42,7 +79,7 @@ define KernelPackage/rkisp-rockchip
 	CONFIG_VIDEO_ROCKCHIP_ISP_VERSION_V32=y \
 	CONFIG_VIDEO_ROCKCHIP_ISP
   FILES:= $(LINUX_DIR)/drivers/media/platform/rockchip/isp/video_rkisp.ko
-  AUTOLOAD:=$(call AutoProbe,video_rkisp)
+  AUTOLOAD:=$(call AutoLoad,61, video_rkisp)
   $(call AddDepends/camera)
 endef
 
@@ -64,7 +101,7 @@ define KernelPackage/rkcif-rockchip
 	CONFIG_ROCKCHIP_CIF_USE_MONITOR=n \
 	CONFIG_VIDEO_ROCKCHIP_CIF
   FILES:= $(LINUX_DIR)/drivers/media/platform/rockchip/cif/video_rkcif.ko
-  AUTOLOAD:=$(call AutoProbe,video_rkcif)
+  AUTOLOAD:=$(call AutoLoad,60, video_rkcif)
   $(call AddDepends/camera)
 endef
 
@@ -73,3 +110,4 @@ define KernelPackage/rkcif-rockchip/description
 endef
 
 $(eval $(call KernelPackage,rkcif-rockchip))
+
