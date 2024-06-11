@@ -2,6 +2,11 @@
 #
 # Copyright (C) 2020 Tobias Maedel
 
+### env.img generate scripts ###
+define Build/env-rv1106-sd-img
+	mkenvimage -s 0x8000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.sd.txt
+endef
+
 define Device/Default-emmc
   $(Device/Default-arm32)
   FILESYSTEMS += squashfs ext4
@@ -43,7 +48,7 @@ define Device/luckfox_pico-max
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   IMAGES += sysupgrade.img.gz
-  IMAGE/sysupgrade.img.gz := env-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
 
