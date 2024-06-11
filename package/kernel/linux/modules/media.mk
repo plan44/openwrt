@@ -20,7 +20,7 @@ define KernelPackage/cam-os04a10
   KCONFIG:= \
 	CONFIG_VIDEO_OS04A10
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/os04a10.ko
-  AUTOLOAD:=$(call AutoProbe,os04a10)
+  AUTOLOAD:=$(call AutoLoad,70, os04a10)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -36,7 +36,7 @@ define KernelPackage/cam-ov2640
   KCONFIG:= \
 	CONFIG_VIDEO_OV2640
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/ov2640.ko
-  AUTOLOAD:=$(call AutoProbe,ov2640)
+  AUTOLOAD:=$(call AutoLoad,70, ov2640)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -52,7 +52,7 @@ define KernelPackage/cam-ov5640
   KCONFIG:= \
 	CONFIG_VIDEO_OV5640
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/ov5640.ko
-  AUTOLOAD:=$(call AutoProbe,ov5640)
+  AUTOLOAD:=$(call AutoLoad,70, ov5640)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -68,7 +68,7 @@ define KernelPackage/cam-ov7640
   KCONFIG:= \
 	CONFIG_VIDEO_OV7640
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/ov7640.ko
-  AUTOLOAD:=$(call AutoProbe,ov7640)
+  AUTOLOAD:=$(call AutoLoad,70, ov7640)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -83,7 +83,7 @@ define KernelPackage/cam-ov9640
   KCONFIG:= \
 	CONFIG_VIDEO_OV9640
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/ov9640.ko
-  AUTOLOAD:=$(call AutoProbe,ov9640)
+  AUTOLOAD:=$(call AutoLoad,70, ov9640)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -98,7 +98,7 @@ define KernelPackage/cam-sc200ai
   KCONFIG:= \
 	CONFIG_VIDEO_SC200AI
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/sc200ai.ko
-  AUTOLOAD:=$(call AutoProbe,sc200ai)
+  AUTOLOAD:=$(call AutoLoad,70, sc200ai)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -113,7 +113,7 @@ define KernelPackage/cam-sc2336
   KCONFIG:= \
 	CONFIG_VIDEO_SC2336
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/sc2336.ko
-  AUTOLOAD:=$(call AutoProbe,sc2336)
+  AUTOLOAD:=$(call AutoLoad,70, sc2336)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -129,7 +129,7 @@ define KernelPackage/cam-sc3336
   KCONFIG:= \
 	CONFIG_VIDEO_SC3336
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/sc3336.ko
-  AUTOLOAD:=$(call AutoProbe,sc3336)
+  AUTOLOAD:=$(call AutoLoad,70, sc3336)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -145,7 +145,7 @@ define KernelPackage/cam-sc4336
   KCONFIG:= \
 	CONFIG_VIDEO_SC4336
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/sc4336.ko
-  AUTOLOAD:=$(call AutoProbe,sc4336)
+  AUTOLOAD:=$(call AutoLoad,70, sc4336)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -161,7 +161,7 @@ define KernelPackage/cam-sc530ai
   KCONFIG:= \
 	CONFIG_VIDEO_SC530AI
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/sc530ai.ko
-  AUTOLOAD:=$(call AutoProbe,sc530ai)
+  AUTOLOAD:=$(call AutoLoad,70, sc530ai)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -177,7 +177,7 @@ define KernelPackage/cam-s5k3l6xx
   KCONFIG:= \
 	CONFIG_VIDEO_S5K3L6XX 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5k3l6xx.ko
-  AUTOLOAD:=$(call AutoProbe,s5k3l6xx)
+  AUTOLOAD:=$(call AutoLoad,70, s5k3l6xx)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -193,7 +193,7 @@ define KernelPackage/cam-s5k3l6xx
   KCONFIG:= \
 	CONFIG_VIDEO_S5K3L6XX 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5k3l6xx.ko
-  AUTOLOAD:=$(call AutoProbe,s5k3l6xx)
+  AUTOLOAD:=$(call AutoLoad,70, s5k3l6xx)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -209,7 +209,7 @@ define KernelPackage/cam-s5k6aafx
   KCONFIG:= \
 	CONFIG_VIDEO_S5K6AA 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5k6aa.ko
-  AUTOLOAD:=$(call AutoProbe,s5k6aa)
+  AUTOLOAD:=$(call AutoLoad,70, s5k6aa)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -225,7 +225,7 @@ define KernelPackage/cam-s5k6a3
   KCONFIG:= \
 	CONFIG_VIDEO_S5K6A3 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5k6a3.ko
-  AUTOLOAD:=$(call AutoProbe,s5k6a3)
+  AUTOLOAD:=$(call AutoLoad,70, s5k6a3)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -241,7 +241,7 @@ define KernelPackage/cam-s5k4ecgx
   KCONFIG:= \
 	CONFIG_VIDEO_S5K4ECGX 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5k4ecgx.ko
-  AUTOLOAD:=$(call AutoProbe,s5k4ecgx)
+  AUTOLOAD:=$(call AutoLoad,70, s5k4ecgx)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -257,7 +257,7 @@ define KernelPackage/cam-s5k5baf
   KCONFIG:= \
 	CONFIG_VIDEO_S5K5BAF 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5k5baf.ko
-  AUTOLOAD:=$(call AutoProbe,s5k5baf)
+  AUTOLOAD:=$(call AutoLoad,70, s5k5baf)
   $(call AddDepends/camera-i2c)
 endef
 
@@ -273,7 +273,7 @@ define KernelPackage/cam-s5kjn1
   KCONFIG:= \
 	CONFIG_VIDEO_S5KJN1 
   FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_I2C_DIR)/s5kjn1.ko
-  AUTOLOAD:=$(call AutoProbe,s5kjn1)
+  AUTOLOAD:=$(call AutoLoad,70, s5kjn1)
   $(call AddDepends/camera-i2c)
 endef
 
