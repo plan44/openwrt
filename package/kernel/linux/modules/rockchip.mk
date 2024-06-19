@@ -7,15 +7,32 @@
 
 ROCKCHIP_MENU:=Rockchip support
 
+define KernelPackage/rk_dvbm-rockchip
+  TITLE:=Rockchip RGA 2D support
+  SUBMENU:=$(ROCKCHIP_MENU)
+  DEPENDS:=@TARGET_rockchip
+  KCONFIG:= \
+  	CONFIG_ROCKCHIP_DVBM_PROC_FS=y \
+	CONFIG_ROCKCHIP_DVBM
+  FILES:= $(LINUX_DIR)/drivers/video/rockchip/dvbm/rk_dvbm.ko
+  AUTOLOAD:=$(call AutoProbe,rk_dvbm)
+endef
+
+define KernelPackage/rk_dvbm-rockchip/description
+ rk dvbm support for Rockchip.
+endef
+
+$(eval $(call KernelPackage,rk_dvbm-rockchip))
+
 define KernelPackage/rga3-rockchip
   TITLE:=Rockchip RGA 2D support
   SUBMENU:=$(ROCKCHIP_MENU)
   DEPENDS:=@TARGET_rockchip
   KCONFIG:= \
 	CONFIG_ROCKCHIP_RGA_ASYNC=y \
-  CONFIG_ROCKCHIP_RGA_PROC_FS=y \
+  	CONFIG_ROCKCHIP_RGA_PROC_FS=y \
 	CONFIG_ROCKCHIP_RGA_DEBUGGER=n \
-  CONFIG_ROCKCHIP_RGA_DEBUG_FS=n \
+  	CONFIG_ROCKCHIP_RGA_DEBUG_FS=n \
 	CONFIG_ROCKCHIP_MULTI_RGA
   FILES:= $(LINUX_DIR)/drivers/video/rockchip/rga3/rga3.ko
   AUTOLOAD:=$(call AutoProbe,rga3)
@@ -70,7 +87,7 @@ $(eval $(call KernelPackage,rknpu-rockchip))
 define KernelPackage/rkisp-rockchip
   TITLE:=Rockchip ISP support
   SUBMENU:=$(ROCKCHIP_MENU)
-  DEPENDS:=@TARGET_rockchip
+  DEPENDS:=@TARGET_rockchip +kmod-rk_dvbm-rockchip
   KCONFIG:= \
   	CONFIG_VIDEO_ROCKCHIP_ISP_VERSION_V1X=y \
   	CONFIG_VIDEO_ROCKCHIP_ISP_VERSION_V20=y \
