@@ -7,6 +7,22 @@ define Build/env-rv1106-sd-img
 	mkenvimage -s 0x8000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.sd.txt
 endef
 
+define Build/env-rv1106-nand-img
+	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.spi-nand.txt
+endef
+
+define Build/rockchip-env-img
+  cp $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img $@
+endef
+
+define Build/rockchip-idblock-img
+	cp $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-idblock.img $@
+endef
+
+define Build/rockchip-uboot-img
+	cp $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-uboot.img $@
+endef
+
 define Device/Default-emmc
   $(Device/Default-arm32)
   FILESYSTEMS += squashfs ext4
@@ -17,7 +33,7 @@ endef
 
 define Device/Default-sdcard
   $(Device/Default-arm32)
-  FILESYSTEMS += squashfs ext4
+  FILESYSTEMS = squashfs ext4
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -25,7 +41,7 @@ endef
 
 define Device/Default-spiflash
   $(Device/Default-arm32)
-  FILESYSTEMS += squashfs jffs2
+  FILESYSTEMS = squashfs jffs2
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -33,10 +49,14 @@ endef
 
 define Device/Default-nandflash
   $(Device/Default-arm32)
-  FILESYSTEMS += squashfs ubifs
-  IMAGES := boot.img rootfs.img
-  IMAGE/rootfs.img := append-rootfs | pad-extra 128k
+  $(Device/Default-sfc-128k)
+  FILESYSTEMS := squashfs ubifs
+  IMAGES := boot.img rootfs.img env.img idblock.img uboot.img
+  IMAGE/rootfs.img := append-ubi | pad-to $$$$(PAGESIZE) | check-size $$$$(IMAGE_SIZE)
   IMAGE/boot.img := resource-img | boot-arm-bin
+  IMAGE/env.img := env-rv1106-nand-img | rockchip-env-img
+  IMAGE/idblock.img := rockchip-idblock-img
+  IMAGE/uboot.img := rockchip-uboot-img
 endef
 
 define Device/luckfox_pico-max

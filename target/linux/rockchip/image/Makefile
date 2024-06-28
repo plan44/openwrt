@@ -174,6 +174,14 @@ define Device/Default-arm32
   DEVICE_DTS = rockchip/$$(SOC)-$(lastword $(subst _, ,$(1)))
 endef
 
+define Device/Default-sfc-128k
+  IMAGE_SIZE := 97280k #95M for rootfs
+  UBINIZE_OPTS :=
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  UBIFS_OPTS := -m $$(PAGESIZE) -e 124KiB -c 4096
+endef
+
 include $(SUBTARGET).mk
 
 $(eval $(call BuildImage))
