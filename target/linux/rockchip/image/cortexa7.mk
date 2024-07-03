@@ -25,7 +25,7 @@ endef
 
 define Device/Default-emmc
   $(Device/Default-arm32)
-  FILESYSTEMS += squashfs ext4
+  FILESYSTEMS += squashfs
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -33,7 +33,7 @@ endef
 
 define Device/Default-sdcard
   $(Device/Default-arm32)
-  FILESYSTEMS = squashfs ext4
+  FILESYSTEMS = squashfs
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -41,7 +41,7 @@ endef
 
 define Device/Default-spiflash
   $(Device/Default-arm32)
-  FILESYSTEMS = squashfs jffs2
+  FILESYSTEMS = squashfs
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -50,7 +50,7 @@ endef
 define Device/Default-nandflash
   $(Device/Default-arm32)
   $(Device/Default-sfc-128k)
-  FILESYSTEMS := squashfs ubifs
+  FILESYSTEMS := squashfs
   IMAGES := boot.img rootfs.img env.img idblock.img uboot.img
   IMAGE/rootfs.img := append-ubi | pad-to $$$$(PAGESIZE) | check-size $$$$(IMAGE_SIZE)
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -67,7 +67,7 @@ define Device/luckfox_pico-max
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  IMAGES += sysupgrade.img.gz
+  IMAGES = sysupgrade.img.gz
   IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
