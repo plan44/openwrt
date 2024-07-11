@@ -68,7 +68,7 @@ define Device/luckfox_pico-max
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   IMAGES = sysupgrade.img.gz
-  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | gzip | append-metadata
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
 
