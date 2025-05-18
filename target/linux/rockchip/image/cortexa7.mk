@@ -64,6 +64,7 @@ define Device/luckfox_pico-max
   DEVICE_TITLE := Luckfox Pico Max
   SUPPORTED_DEVICES := luckfox,pico-max
   SOC := rv1106
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
