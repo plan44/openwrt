@@ -11,6 +11,10 @@ define Build/env-rv1106-nand-img
 	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.spi-nand.txt
 endef
 
+define Build/env-rv1106-emmc-img
+	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.emmc.txt
+endef
+
 define Build/rockchip-env-img
   cp $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img $@
 endef
@@ -60,7 +64,7 @@ define Device/Default-nandflash
 endef
 
 define Device/luckfox_pico-max
-  $(Device/Default-emmc)
+  $(Device/Default-nandflash)
   DEVICE_TITLE := Luckfox Pico Max
   SUPPORTED_DEVICES := luckfox,pico-max
   SOC := rv1106
@@ -68,10 +72,25 @@ define Device/luckfox_pico-max
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  IMAGES = sysupgrade.img.gz
+  IMAGES += sysupgrade.img.gz
   IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
+
+define Device/luckfox_pico-86panel-w
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico 86panel-w
+  SUPPORTED_DEVICES := luckfox,pico-max,pico-86-panel-w
+  SOC := rv1106
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1106g-luckfox-pico-86panel-w
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-emmc-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-86panel-w
+
 
 define Device/luckfox_pico
   $(Device/Default-emmc)
