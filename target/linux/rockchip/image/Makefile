@@ -9,16 +9,14 @@ define Build/Compile
 	$(CP) $(LINUX_DIR)/COPYING $(KDIR)/COPYING.linux
 endef
 
-#### luz hack 2024-06-20: for some reason, dts is produced in $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb, not $(DTS_DIR)$(DEVICE_DTS).dtb
-
 ### Image scripts ###
 define Build/boot-common
-	# This creates a new folder copies the dtb (as rockchip.dtb)
+	# This creates a new folder copies the dtb (as rockchip.dtb) 
 	# and the kernel image (as kernel.img)
 	rm -fR $@.boot
 	mkdir -p $@.boot
 
-	$(CP) $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
+	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel.img
 endef
 
@@ -28,7 +26,7 @@ define Build/boot-common-legacy
 	rm -fR $@.boot
 	mkdir -p $@.boot
 
-	$(CP) $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
+	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel.img
 endef
 
@@ -38,10 +36,10 @@ define Build/boot-script
 endef
 
 define Build/pine64-img
-	# Creates the final SD/eMMC images,
+	# Creates the final SD/eMMC images, 
 	# combining boot partition, root partition as well as the u-boot bootloader
 
-	# Generate a new partition table in $@ with 32 MiB of
+	# Generate a new partition table in $@ with 32 MiB of 
 	# alignment padding for the idbloader and u-boot to fit:
 	# http://opensource.rock-chips.com/wiki_Boot_option#Boot_flow
 	#
@@ -96,7 +94,7 @@ define Build/rockchip32-legacy-bin
 
 	# copy resource.img dtb kernel
 	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
-	$(CP) $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/fdt
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
 
 	# generate boot.img with boot.its
@@ -115,7 +113,7 @@ endef
 
 ### resource.img generate scripts ###
 define Build/resource-img
-	$(LINUX_DIR)/scripts/resource_tool $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb $(LINUX_DIR)/logo.bmp $(LINUX_DIR)/logo_kernel.bmp
+	$(LINUX_DIR)/scripts/resource_tool $(DTS_DIR)/$(DEVICE_DTS).dtb $(LINUX_DIR)/logo.bmp $(LINUX_DIR)/logo_kernel.bmp
 	mv ./resource.img $(LINUX_DIR)/resource.img
 endef
 
@@ -136,7 +134,7 @@ define Build/boot-arm-bin
 
 	# copy resource.img dtb kernel
 	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
-	$(CP) $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/fdt
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
 
 	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -B 0x200 -E -p 0x800 -f $@.boot/boot.its $@
@@ -153,7 +151,7 @@ define Build/boot-arm64-bin
 
 	# copy resource.img dtb kernel
 	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
-	$(CP) $(LINUX_DIR)/../image-$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/fdt
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
 
 	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -B 0x200 -E -p 0x800 -f $@.boot/boot.its $@
@@ -173,7 +171,8 @@ define Device/Default-arm32
   KERNEL_NAME := zImage
   KERNEL := kernel-bin
   IMAGES := sysupgrade.img.gz
-  DEVICE_DTS = rockchip/$$(SOC)-$(lastword $(subst _, ,$(1)))
+  DEVICE_DTS_DIR := ../dts
+  DEVICE_DTS = $$(SOC)_$(1)
 endef
 
 define Device/Default-sfc-128k
