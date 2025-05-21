@@ -16,7 +16,7 @@ define Build/boot-common
 	rm -fR $@.boot
 	mkdir -p $@.boot
 
-	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
+	$(CP) $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel.img
 endef
 
@@ -26,7 +26,7 @@ define Build/boot-common-legacy
 	rm -fR $@.boot
 	mkdir -p $@.boot
 
-	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
+	$(CP) $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $@.boot/rockchip.dtb
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel.img
 endef
 
@@ -94,7 +94,7 @@ define Build/rockchip32-legacy-bin
 
 	# copy resource.img dtb kernel
 	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
-	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $@.boot/fdt
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
 
 	# generate boot.img with boot.its
@@ -113,7 +113,7 @@ endef
 
 ### resource.img generate scripts ###
 define Build/resource-img
-	$(LINUX_DIR)/scripts/resource_tool $(DTS_DIR)/$(DEVICE_DTS).dtb $(LINUX_DIR)/logo.bmp $(LINUX_DIR)/logo_kernel.bmp
+	$(LINUX_DIR)/scripts/resource_tool $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $(LINUX_DIR)/logo.bmp $(LINUX_DIR)/logo_kernel.bmp
 	mv ./resource.img $(LINUX_DIR)/resource.img
 endef
 
@@ -134,7 +134,7 @@ define Build/boot-arm-bin
 
 	# copy resource.img dtb kernel
 	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
-	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $@.boot/fdt
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
 
 	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -B 0x200 -E -p 0x800 -f $@.boot/boot.its $@
@@ -151,7 +151,7 @@ define Build/boot-arm64-bin
 
 	# copy resource.img dtb kernel
 	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
-	$(CP) $(DTS_DIR)/$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $@.boot/fdt
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
 
 	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -B 0x200 -E -p 0x800 -f $@.boot/boot.its $@
