@@ -81,13 +81,15 @@ define Device/luckfox_pico-86panel-w
   $(Device/Default-emmc)
   DEVICE_TITLE := Luckfox Pico 86panel-w
   SUPPORTED_DEVICES := luckfox,pico-max,pico-86-panel-w
-  SOC := rv1106
+  SOC := rv1106g
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1106g-luckfox-pico-86panel-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  IMAGES += sysupgrade.img.gz
-  IMAGE/sysupgrade.img.gz := env-rv1106-emmc-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+  #IMAGES += sysupgrade.img.gz
+  #IMAGE/sysupgrade.img.gz := env-rv1106-emmc-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-86panel-w
 
