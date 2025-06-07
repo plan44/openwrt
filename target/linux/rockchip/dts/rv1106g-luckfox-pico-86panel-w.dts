@@ -142,6 +142,13 @@
 	};
 };
 
+/**********Serial Console**********/
+&uart2 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2m1_xfer>;
+};
+
 /**********RS485**********/
 &uart4 {
 	status = "okay";
