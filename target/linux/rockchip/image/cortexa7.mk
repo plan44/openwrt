@@ -12,7 +12,7 @@ define Build/env-rv1106-nand-img
 endef
 
 define Build/env-rv1106-emmc-img
-	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.emmc.txt
+	mkenvimage -s 0x8000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.emmc.txt
 endef
 
 define Build/rockchip-env-img
@@ -29,15 +29,16 @@ endef
 
 define Device/Default-emmc
   $(Device/Default-arm32)
-  FILESYSTEMS += squashfs
-  IMAGES := boot.img rootfs.img
+  FILESYSTEMS := squashfs
+  IMAGES := boot.img rootfs.img env.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
+  IMAGE/env.img := env-rv1106-emmc-img | rockchip-env-img
 endef
 
 define Device/Default-sdcard
   $(Device/Default-arm32)
-  FILESYSTEMS = squashfs
+  FILESYSTEMS := squashfs
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -45,7 +46,7 @@ endef
 
 define Device/Default-spiflash
   $(Device/Default-arm32)
-  FILESYSTEMS = squashfs
+  FILESYSTEMS := squashfs
   IMAGES := boot.img rootfs.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
@@ -91,7 +92,6 @@ define Device/luckfox_pico-86panel-w
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-86panel-w
-
 
 define Device/luckfox_pico
   $(Device/Default-emmc)
