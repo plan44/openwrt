@@ -22,6 +22,7 @@ PKG_LICENSE:=GPL-2.0
 # Extend depends from version.mk
 PKG_CONFIG_DEPENDS += \
 	CONFIG_SIGNED_PACKAGES CONFIG_TARGET_INIT_PATH CONFIG_TARGET_PREINIT_DISABLE_FAILSAFE \
+	CONFIG_HAS_DT_OVERLAY_SUPPORT \
 	CONFIG_NAND_SUPPORT \
 	CONFIG_LEGACY_SDCARD_SUPPORT \
 	CONFIG_EMMC_SUPPORT \
@@ -197,6 +198,11 @@ else
 	mkdir -p $(1)/var
 	$(LN) /tmp/run $(1)/var/run
 endif
+
+ifneq ($(CONFIG_HAS_DT_OVERLAY_SUPPORT),y)
+	rm -f $(1)/lib/preinit/90_apply_dt_overlays
+endif
+
 	$(LN) /tmp/resolv.conf /tmp/TZ /tmp/localtime $(1)/etc/
 
 	chmod 0600 $(1)/etc/shadow

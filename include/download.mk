@@ -70,7 +70,9 @@ define check_download_integrity
 	       $$(filter undefined,$$(flavor DownloadChecked/$(FILE)))), \
     $$(eval DownloadChecked/$(FILE):=1) \
     $$(if $$(filter-out $$(call gen_sha256sum,$(FILE)),$$(expected_hash)), \
-      $(DL_DIR)/$(FILE): FORCE) \
+      $$(if $$(filter skip,$(MIRROR_HASH)),, \
+	      $(DL_DIR)/$(FILE): FORCE) \
+	    ) \
   )
 endef
 
@@ -205,6 +207,7 @@ define DownloadMethod/github_archive
 			--subdir="$(SUBDIR)" \
 			--source="$(FILE)" \
 			--hash="$(MIRROR_HASH)" \
+			--submodules $(SUBMODULES) \
 		|| ( $(call DownloadMethod/rawgit) ); \
 	)
 endef
@@ -218,12 +221,16 @@ define DownloadMethod/rawgit
 	[ \! -d $(SUBDIR) ] && \
 	git clone $(OPTS) $(URL) $(SUBDIR) && \
 	(cd $(SUBDIR) && git checkout $(VERSION) && \
-	git submodule update --init --recursive) && \
+	$(if $(filter skip,$(SUBMODULES)),true,git submodule update --init --recursive -- $(SUBMODULES)) && \
+	echo "$(URL)" >.gitdownload_url && \
+	echo "$(VERSION)" >.gitdownload_version && \
+	git rev-parse HEAD >.gitdownload_rev) && \
 	echo "Packing checkout..." && \
 	export TAR_TIMESTAMP=`cd $(SUBDIR) && git log -1 --format='@%ct'` && \
 	rm -rf $(SUBDIR)/.git && \
 	$(call dl_tar_pack,$(TMP_DIR)/dl/$(FILE),$(SUBDIR)) && \
 	mv $(TMP_DIR)/dl/$(FILE) $(DL_DIR)/ && \
+	sleep 2 && \
 	rm -rf $(SUBDIR);
 endef
 
@@ -297,6 +304,7 @@ define Download/Defaults
   MIRROR_MD5SUM:=x
   VERSION:=
   OPTS:=
+  SUBMODULES:=
 endef
 
 define Download/default
@@ -305,6 +313,7 @@ define Download/default
   URL_FILE:=$(PKG_SOURCE_URL_FILE)
   SUBDIR:=$(PKG_SOURCE_SUBDIR)
   PROTO:=$(PKG_SOURCE_PROTO)
+  SUBMODULES:=$(PKG_SOURCE_SUBMODULES)
   $(if $(PKG_SOURCE_MIRROR),MIRROR:=$(filter 1,$(PKG_MIRROR)))
   $(if $(PKG_MIRROR_MD5SUM),MIRROR_MD5SUM:=$(PKG_MIRROR_MD5SUM))
   $(if $(PKG_MIRROR_HASH),MIRROR_HASH:=$(PKG_MIRROR_HASH))
