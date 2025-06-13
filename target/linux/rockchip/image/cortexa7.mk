@@ -83,11 +83,11 @@ define Device/luckfox_pico-86panel-w
   DEVICE_TITLE := Luckfox Pico 86panel-w
   SUPPORTED_DEVICES := rockchip,rv1106g-luckfox-pico-86panel-w
   SOC := rv1106g
-  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1106g-luckfox-pico-86panel-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
+  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
