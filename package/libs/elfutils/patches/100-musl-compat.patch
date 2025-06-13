@@ -5,7 +5,7 @@
  {
    while (1)
 -    error (EXIT_FAILURE, ENOMEM, "libdw");
-+    error (EXIT_FAILURE, errno, gettext ("cannot allocate memory"));
++    error (EXIT_FAILURE, errno, "libdw");
  }
 --- a/libdwfl/dwfl_error.c
 +++ b/libdwfl/dwfl_error.c

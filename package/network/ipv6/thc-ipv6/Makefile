@@ -34,7 +34,7 @@ THC_APPLETS := \
 	toobig6 trace6
 
 THC_DEPENDS_dnsdict6 := +libpthread
-THC_DEPENDS_thcping6 := +librt
+THC_DEPENDS_thcping6 := +USE_GLIBC:librt
 
 define BuildTool
   define Package/thc-ipv6-$(subst _,-,$(1))

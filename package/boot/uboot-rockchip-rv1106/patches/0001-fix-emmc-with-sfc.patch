@@ -1,0 +1,12 @@
+Index: u-boot-2024-03-22-6cc11e30/configs/rv1106-emmc_defconfig
+===================================================================
+--- u-boot-2024-03-22-6cc11e30.orig/configs/rv1106-emmc_defconfig
++++ u-boot-2024-03-22-6cc11e30/configs/rv1106-emmc_defconfig
+@@ -135,6 +135,7 @@ CONFIG_DEBUG_UART_BASE=0xff4c0000
+ CONFIG_DEBUG_UART_CLOCK=24000000
+ CONFIG_DEBUG_UART_SHIFT=2
+ CONFIG_ROCKCHIP_SFC=y
++CONFIG_ROCKCHIP_SFC_IOMUX=y
+ CONFIG_SYSRESET=y
+ # CONFIG_SYSRESET_SYSCON_REBOOT is not set
+ # CONFIG_FAT_WRITE is not set

@@ -37,7 +37,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/util-linux/Default
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:= +librt
+  DEPENDS:= +USE_GLIBC:librt
   URL:=http://www.kernel.org/pub/linux/utils/util-linux/
 endef
 

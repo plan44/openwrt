@@ -29,6 +29,10 @@ PKG_SOURCE_URL:=@GNU/gcc/gcc-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 PKG_CPE_ID:=cpe:/a:gnu:gcc
 
+ifeq ($(PKG_VERSION),8.3.0)
+  PKG_HASH:=64baadfe6cc0f4947a84cb12d7f0dfaf45bb58b7e92461639596c21e02d97d2c
+endif
+
 ifeq ($(PKG_VERSION),8.4.0)
   PKG_HASH:=e30a6e52d10e1f27ed55104ad233c30bd1e99cfb5ff98ab022dc941edd1b2dd4
 endif
@@ -71,6 +75,9 @@ TAR_OPTIONS += \
 	--exclude=libjava
 
 export libgcc_cv_fixed_point=no
+ifdef CONFIG_USE_UCLIBC
+  export glibcxx_cv_c99_math_tr1=no
+endif
 ifdef CONFIG_INSTALL_GCCGO
   export libgo_cv_c_split_stack_supported=no
 endif
@@ -115,9 +122,7 @@ GCC_CONFIGURE:= \
 		--with-mpc=$(TOPDIR)/staging_dir/host \
 		--disable-decimal-float \
 		--with-diagnostics-color=auto-if-env \
-		--enable-__cxa_atexit \
-		--disable-libstdcxx-dual-abi \
-		--with-default-libstdcxx-abi=new
+		--enable-__cxa_atexit
 ifneq ($(CONFIG_mips)$(CONFIG_mipsel),)
   GCC_CONFIGURE += --with-mips-plt
 endif
@@ -142,6 +147,14 @@ ifdef CONFIG_sparc
   GCC_CONFIGURE+= \
 		--enable-targets=all \
 		--with-long-double-128
+endif
+
+ifeq ($(LIBC),uClibc)
+  GCC_CONFIGURE+= \
+		--disable-__cxa_atexit
+else
+  GCC_CONFIGURE+= \
+		--enable-__cxa_atexit
 endif
 
 ifneq ($(GCC_ARCH),)

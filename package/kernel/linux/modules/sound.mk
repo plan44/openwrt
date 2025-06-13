@@ -29,8 +29,7 @@ SOUNDCORE_FILES ?= \
 	$(LINUX_DIR)/sound/core/snd-timer.ko \
 	$(LINUX_DIR)/sound/core/snd-pcm.ko \
 	$(LINUX_DIR)/sound/core/oss/snd-mixer-oss.ko \
-	$(LINUX_DIR)/sound/core/oss/snd-pcm-oss.ko \
-	$(LINUX_DIR)/sound/core/snd-compress.ko
+	$(LINUX_DIR)/sound/core/oss/snd-pcm-oss.ko
 
 SOUNDCORE_LOAD += \
 	$(if $(CONFIG_SND_DMAENGINE_PCM),snd-pcm-dmaengine)
@@ -57,8 +56,7 @@ define KernelPackage/sound-core
 	CONFIG_HOSTAUDIO \
 	CONFIG_SND_PCM_OSS \
 	CONFIG_SND_MIXER_OSS \
-	CONFIG_SOUND_OSS_CORE_PRECLAIM=y \
-	CONFIG_SND_COMPRESS_OFFLOAD
+	CONFIG_SOUND_OSS_CORE_PRECLAIM=y
   FILES:=$(SOUNDCORE_FILES)
   AUTOLOAD:=$(call AutoLoad,30,$(SOUNDCORE_LOAD))
 endef
