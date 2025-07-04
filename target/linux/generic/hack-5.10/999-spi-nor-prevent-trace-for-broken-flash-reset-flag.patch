@@ -15,7 +15,7 @@ From: Lukas Zeller, luz@plan44.ch
  			  "enabling reset hack; may not recover from unexpected reboots\n");
 +		 */
 +		if (nor->flags & SNOR_F_BROKEN_RESET) {
-+  		dev_warn(nor->dev, "enabling broken reset hack; may not recover from unexpected reboots\n");
++		dev_warn(nor->dev, "enabling broken reset hack; may not recover from unexpected reboots\n");
 +		}
  		nor->params->set_4byte_addr_mode(nor, true);
  	}
