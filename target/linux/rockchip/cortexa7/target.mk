@@ -7,7 +7,7 @@ include $(TOPDIR)/rules.mk
 CPU_TYPE:=cortex-a7
 CPU_SUBTYPE:=neon-vfpv4
 BOARDNAME:=RK33xx/RV1129/RV110x boards (32 bit)
-FEATURES +=nand emmc ubifs
+FEATURES +=nand emmc ubifs dt-overlay
 
 define Target/Description
 	Build firmware image for Rockchip RK33xx/RV1129/RV110x devices.
