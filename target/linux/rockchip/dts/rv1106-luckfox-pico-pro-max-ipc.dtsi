@@ -2,11 +2,33 @@
 /*
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  */
-#include "rv1106-amp.dtsi"
+#include "rv1106-evb.dtsi"
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk1p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,115200 root=/dev/mtdblock4 rootfstype=squashfs rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
+	};
+
+	reserved_memory: reserved-memory {
+		status = "okay";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+		drm_logo: drm-logo@00000000 {
+			compatible = "rockchip,drm-logo";
+			reg = <0x0 0x0>;
+		};
+		linux,cma {
+			status = "okay";
+			compatible = "shared-dma-pool";
+			inactive;
+			reusable;
+			size = <0xA00000>; //10M
+			linux,cma-default;
+		};
+		// mmc_ecsd: mmc@3f000 {
+		// 	reg = <0x3f000 0x00001000>;
+		// };
 	};
 
 	acodec_sound: acodec-sound {
@@ -58,18 +80,18 @@
 		};	
 	};
 
-	// DHT11
-	dht11_sensor {
-        compatible = "dht11";
-        pinctrl-names = "default";
-        pinctrl-0 = <&gpio1_pc7>;
+	// // DHT11
+	// dht11_sensor {
+    //     compatible = "dht11";
+    //     pinctrl-names = "default";
+    //     pinctrl-0 = <&gpio1_pc7>;
 
-        dht11@1 {
-            gpios = <&gpio1 RK_PC7 GPIO_ACTIVE_HIGH>;
-            label = "dht11";
-            linux,default-trigger = "humidity";
-        };
-    };
+    //     dht11@1 {
+    //         gpios = <&gpio1 RK_PC7 GPIO_ACTIVE_HIGH>;
+    //         label = "dht11";
+    //         linux,default-trigger = "humidity";
+    //     };
+    // };
 
 };
 
@@ -81,9 +103,39 @@
 
 &acodec {
 	#sound-dai-cells = <0>;
-	pa-ctl-gpios = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
+	// pa-ctl-gpios = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 };
+
+/************************* FIQ_DUBUGGER ****************************/
+&fiq_debugger {
+	rockchip,irq-mode-enable = <1>;
+	status = "okay";
+};
+
+/***************************** USB *********************************/
+&u2phy {
+	status = "okay";
+};
+
+&u2phy_otg {
+	status = "okay";
+};
+
+&usbdrd {
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	extcon = <&u2phy>;
+	status = "okay";
+};
+
+/***************************** DSM *********************************/
+&dsm {
+	status = "disabled";
+};
+
 /***************************** CPU ********************************/
 &cpu0 {
 	cpu-supply = <&vdd_arm>;
@@ -100,169 +152,169 @@
 };
 
 /***************************** CSI ********************************/
-&csi2_dphy_hw {
-	status = "okay";
-};
+// &csi2_dphy_hw {
+// 	status = "okay";
+// };
 
-&csi2_dphy0 {
-	status = "okay";
+// &csi2_dphy0 {
+// 	status = "okay";
 
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
+// 	ports {
+// 		#address-cells = <1>;
+// 		#size-cells = <0>;
 
-		port@0 {
-			reg = <0>;
-			#address-cells = <1>;
-			#size-cells = <0>;
+// 		port@0 {
+// 			reg = <0>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
 
-			csi_dphy_input0: endpoint@0 {
-				reg = <0>;
-				remote-endpoint = <&sc3336_out>;
-				data-lanes = <1 2>;
-			};
+// 			csi_dphy_input0: endpoint@0 {
+// 				reg = <0>;
+// 				remote-endpoint = <&sc3336_out>;
+// 				data-lanes = <1 2>;
+// 			};
 
-			csi_dphy_input1: endpoint@1 {
-				reg = <1>;
-				remote-endpoint = <&mis5001_out>;
-				data-lanes = <1 2>;
-			};
-		};
+// 			csi_dphy_input1: endpoint@1 {
+// 				reg = <1>;
+// 				remote-endpoint = <&mis5001_out>;
+// 				data-lanes = <1 2>;
+// 			};
+// 		};
 
-		port@1 {
-			reg = <1>;
-			#address-cells = <1>;
-			#size-cells = <0>;
+// 		port@1 {
+// 			reg = <1>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
 
-			csi_dphy_output: endpoint@0 {
-				reg = <0>;
-				remote-endpoint = <&mipi_csi2_input>;
-			};
-		};
-	};
-};
+// 			csi_dphy_output: endpoint@0 {
+// 				reg = <0>;
+// 				remote-endpoint = <&mipi_csi2_input>;
+// 			};
+// 		};
+// 	};
+// };
 
-&i2c4 {
-	status = "okay";
-	clock-frequency = <400000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c4m2_xfer>;
+// &i2c4 {
+// 	status = "okay";
+// 	clock-frequency = <400000>;
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&i2c4m2_xfer>;
 
-	sc3336: sc3336@30 {
-		compatible = "smartsens,sc3336";
-		status = "okay";
-		reg = <0x30>;
-		clocks = <&cru MCLK_REF_MIPI0>;
-		clock-names = "xvclk";
-		pwdn-gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&mipi_refclk_out0>;
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "CMK-OT2119-PC1";
-		rockchip,camera-module-lens-name = "30IRC-F16";
-		port {
-			sc3336_out: endpoint {
-				remote-endpoint = <&csi_dphy_input0>;
-				data-lanes = <1 2>;
-			};
-		};
-	};
+// 	sc3336: sc3336@30 {
+// 		compatible = "smartsens,sc3336";
+// 		status = "okay";
+// 		reg = <0x30>;
+// 		clocks = <&cru MCLK_REF_MIPI0>;
+// 		clock-names = "xvclk";
+// 		pwdn-gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_HIGH>;
+// 		pinctrl-names = "default";
+// 		pinctrl-0 = <&mipi_refclk_out0>;
+// 		rockchip,camera-module-index = <0>;
+// 		rockchip,camera-module-facing = "back";
+// 		rockchip,camera-module-name = "CMK-OT2119-PC1";
+// 		rockchip,camera-module-lens-name = "30IRC-F16";
+// 		port {
+// 			sc3336_out: endpoint {
+// 				remote-endpoint = <&csi_dphy_input0>;
+// 				data-lanes = <1 2>;
+// 			};
+// 		};
+// 	};
 
-	mis5001: mis5001@31 {
-		compatible = "imagedesign,mis5001";
-		status = "okay";
-		reg = <0x31>;
-		clocks = <&cru MCLK_REF_MIPI0>;
-		clock-names = "xvclk";
-		reset-gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&mipi_refclk_out0>;
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "CMK-OT2115-PC1";
-		rockchip,camera-module-lens-name = "30IRC-F16";
-		port {
-			mis5001_out: endpoint {
-				remote-endpoint = <&csi_dphy_input1>;
-				data-lanes = <1 2>;
-			};
-		};
-	};
-};
+// 	mis5001: mis5001@31 {
+// 		compatible = "imagedesign,mis5001";
+// 		status = "okay";
+// 		reg = <0x31>;
+// 		clocks = <&cru MCLK_REF_MIPI0>;
+// 		clock-names = "xvclk";
+// 		reset-gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_HIGH>;
+// 		pinctrl-names = "default";
+// 		pinctrl-0 = <&mipi_refclk_out0>;
+// 		rockchip,camera-module-index = <0>;
+// 		rockchip,camera-module-facing = "back";
+// 		rockchip,camera-module-name = "CMK-OT2115-PC1";
+// 		rockchip,camera-module-lens-name = "30IRC-F16";
+// 		port {
+// 			mis5001_out: endpoint {
+// 				remote-endpoint = <&csi_dphy_input1>;
+// 				data-lanes = <1 2>;
+// 			};
+// 		};
+// 	};
+// };
 
-&mipi0_csi2 {
-	status = "okay";
+// &mipi0_csi2 {
+// 	status = "okay";
 
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
+// 	ports {
+// 		#address-cells = <1>;
+// 		#size-cells = <0>;
 
-		port@0 {
-			reg = <0>;
-			#address-cells = <1>;
-			#size-cells = <0>;
+// 		port@0 {
+// 			reg = <0>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
 
-			mipi_csi2_input: endpoint@1 {
-				reg = <1>;
-				remote-endpoint = <&csi_dphy_output>;
-			};
-		};
+// 			mipi_csi2_input: endpoint@1 {
+// 				reg = <1>;
+// 				remote-endpoint = <&csi_dphy_output>;
+// 			};
+// 		};
 
-		port@1 {
-			reg = <1>;
-			#address-cells = <1>;
-			#size-cells = <0>;
+// 		port@1 {
+// 			reg = <1>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
 
-			mipi_csi2_output: endpoint@0 {
-				reg = <0>;
-				remote-endpoint = <&cif_mipi_in>;
-			};
-		};
-	};
-};
+// 			mipi_csi2_output: endpoint@0 {
+// 				reg = <0>;
+// 				remote-endpoint = <&cif_mipi_in>;
+// 			};
+// 		};
+// 	};
+// };
 
-&rkcif {
-	status = "okay";
-};
+// &rkcif {
+// 	status = "okay";
+// };
 
-&rkcif_mipi_lvds {
-	status = "okay";
+// &rkcif_mipi_lvds {
+// 	status = "okay";
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&mipi_pins>;
-	port {
-		/* MIPI CSI-2 endpoint */
-		cif_mipi_in: endpoint {
-			remote-endpoint = <&mipi_csi2_output>;
-		};
-	};
-};
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&mipi_pins>;
+// 	port {
+// 		/* MIPI CSI-2 endpoint */
+// 		cif_mipi_in: endpoint {
+// 			remote-endpoint = <&mipi_csi2_output>;
+// 		};
+// 	};
+// };
 
-&rkcif_mipi_lvds_sditf {
-	status = "okay";
+// &rkcif_mipi_lvds_sditf {
+// 	status = "okay";
 
-	port {
-		/* MIPI CSI-2 endpoint */
-		mipi_lvds_sditf: endpoint {
-			remote-endpoint = <&isp_in>;
-		};
-	};
-};
+// 	port {
+// 		/* MIPI CSI-2 endpoint */
+// 		mipi_lvds_sditf: endpoint {
+// 			remote-endpoint = <&isp_in>;
+// 		};
+// 	};
+// };
 
-&rkisp {
-	status = "okay";
-};
+// &rkisp {
+// 	status = "okay";
+// };
 
-&rkisp_vir0 {
-	status = "okay";
+// &rkisp_vir0 {
+// 	status = "okay";
 
-	port@0 {
-		isp_in: endpoint {
-			remote-endpoint = <&mipi_lvds_sditf>;
-		};
-	};
-};
+// 	port@0 {
+// 		isp_in: endpoint {
+// 			remote-endpoint = <&mipi_lvds_sditf>;
+// 		};
+// 	};
+// };
 
 
 /*****************************PINCTRL********************************/
@@ -277,17 +329,17 @@
 		reg = <0>;
 	};
 
-  fbtft@0{
-    compatible = "sitronix,st7789v";
-    reg = <0>;
-    spi-max-frequency = <20000000>;
-    fps = <30>;
-    buswidth = <8>;
-    debug = <0x7>;
-    led-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_HIGH>;//BL
-    dc-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;      //DC
-    reset-gpios = <&gpio1 RK_PC3 GPIO_ACTIVE_LOW>;    //RES
-  };
+//   fbtft@0{
+//     compatible = "sitronix,st7789v";
+//     reg = <0>;
+//     spi-max-frequency = <20000000>;
+//     fps = <30>;
+//     buswidth = <8>;
+//     debug = <0x7>;
+//     led-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_HIGH>;//BL
+//     dc-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;      //DC
+//     reset-gpios = <&gpio1 RK_PC3 GPIO_ACTIVE_LOW>;    //RES
+//   };
 };
 // I2C
 &i2c0 {
@@ -374,7 +426,17 @@
     gpio1-pc7 {
         gpio1_pc7:gpio1-pc7 {
             rockchip,pins = <1 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
-    };
+		};
+	};
+
+	touchscreen {
+		tp_rst:tp-rst {
+			rockchip,pins = <3 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		tp_irq:tp-irq {
+			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
 	};
 };
 
