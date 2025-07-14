@@ -68,16 +68,16 @@ define Device/luckfox_pico-max
   $(Device/Default-nandflash)
   DEVICE_TITLE := Luckfox Pico Max
   SUPPORTED_DEVICES := luckfox,pico-max
-  SOC := rv1106g  # Changed to rv1106g
-  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  UBINIZE_OPTS := -m 2048 -p 128KiB -s 2048
+  SOC := rv1106g
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max
   UBOOT_DEVICE_NAME := rv1106-sfc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin  # Add this!
-  IMAGE/boot.img := append-kernel  # Add this!
-  IMAGES += sysupgrade.img.gz
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES := boot.img rootfs.img sysupgrade.img.gz
+  IMAGE/rootfs.img := append-rootfs | pad-to $$(BLOCKSIZE)
   IMAGE/sysupgrade.img.gz := sysupgrade-tar | gzip | append-metadata
+  FILESYSTEMS := squashfs
 endef
 TARGET_DEVICES += luckfox_pico-max
 
