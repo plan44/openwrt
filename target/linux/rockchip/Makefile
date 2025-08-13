@@ -5,7 +5,7 @@ include $(TOPDIR)/rules.mk
 BOARD:=rockchip
 BOARDNAME:=Rockchip
 FEATURES:=ext4 audio usb usbgadget display gpio fpu pci pcie rootfs-part boot-part squashfs
-SUBTARGETS:=armv8
+SUBTARGETS:=armv8 cortexa7
 
 KERNEL_PATCHVER:=6.6
 
@@ -15,7 +15,7 @@ endef
 
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES += uboot-envtools partx-utils e2fsprogs mkf2fs kmod-gpio-button-hotplug
+DEFAULT_PACKAGES += uboot-envtools partx-utils e2fsprogs mkf2fs kmod-gpio-button-hotplug nand-utils
 
 KERNELNAME:=Image dtbs
 
