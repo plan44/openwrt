@@ -64,7 +64,17 @@ platform_do_upgrade() {
 
 		# Separate removal and addtion is necessary; otherwise, partition 1
 		# will be missing if it overlaps with the old partition 2
-		partx -d - "/dev/$diskdev"
+
+		# Note: this will still fail when partition2 is a f2fs. For some reason
+		#		the partition remains blocked and can't be removed, presumably by
+		#		f2fs having something open on the partdev despite being unmounted
+		#		and loopdev removed. So, partx -d will fail, and in consequence,
+		#		partx -a will then fail, too.
+		if ! partx -d - "/dev/$diskdev"; then
+			# removing partition failed, set marker to enable workaround
+			# below in platform_copy_config()
+			touch /tmp/partitions_blocked
+		fi
 		partx -a - "/dev/$diskdev"
 
 		return 0
@@ -100,26 +110,58 @@ bcm27xx_set_root_part() {
 platform_copy_config() {
 	local partdev
 
-	if export_partdevice partdev 1; then
-		mkdir -p /boot
-		[ -f /boot/kernel*.img ] || mount -t vfat -o rw,noatime "/dev/$partdev" /boot
+	if [ -f /tmp/partitions_blocked ]; then
+		# need to work around blocked partition: access possibly grown boot via loop
+		if export_bootdevice && export_partdevice diskdev 0; then
+			get_partitions "/dev/$diskdev" newbootdisk
+			read BOOTNO BOOTOFFS BOOTSZ < /tmp/partmap.newbootdisk
+			BYTEOFFS=$((BOOTOFFS * 512))
+			BYTESZ=$((BOOTSZ * 512))
+			LOOPDEV=$(losetup -f "/dev/$diskdev" -o $BYTEOFFS --sizelimit $BYTESZ --show)
+      # mount via loopdev
+			mkdir -p /boot
+			[ -f /boot/kernel.img ] || mount -t vfat -o rw,noatime "$LOOPDEV" /boot
+      # now do the backup
+      tar -C / -zxvf "$UPGRADE_BACKUP" boot/cmdline.txt boot/config.txt
+      bcm27xx_set_root_part
 
-		tar -C / -zxvf "$UPGRADE_BACKUP" boot/cmdline.txt boot/config.txt
-		bcm27xx_set_root_part
+      local backup_tmp="/tmp/backup-update"
+      mkdir -p $backup_tmp
+      tar -C $backup_tmp -zxvf $UPGRADE_BACKUP
+      cp -af /boot/cmdline.txt $backup_tmp/boot/
 
-		local backup_tmp="/tmp/backup-update"
-		mkdir -p $backup_tmp
-		tar -C $backup_tmp -zxvf $UPGRADE_BACKUP
-		cp -af /boot/cmdline.txt $backup_tmp/boot/
+      local work_dir=$(pwd)
+      cd $backup_tmp
+      tar -C $backup_tmp -zcvf /boot/$BACKUP_FILE *
+      cd $work_dir
 
-		local work_dir=$(pwd)
-		cd $backup_tmp
-		tar -C $backup_tmp -zcvf /boot/$BACKUP_FILE *
-		cd $work_dir
+      sync
+      umount /boot
+		fi
+	else
+    if export_partdevice partdev 1; then
+      # mount normally
+      mkdir -p /boot
+      [ -f /boot/kernel*.img ] || mount -t vfat -o rw,noatime "/dev/$partdev" /boot
 
-		sync
-		umount /boot
-	fi
+      # now do the backup
+      tar -C / -zxvf "$UPGRADE_BACKUP" boot/cmdline.txt boot/config.txt
+      bcm27xx_set_root_part
+
+      local backup_tmp="/tmp/backup-update"
+      mkdir -p $backup_tmp
+      tar -C $backup_tmp -zxvf $UPGRADE_BACKUP
+      cp -af /boot/cmdline.txt $backup_tmp/boot/
+
+      local work_dir=$(pwd)
+      cd $backup_tmp
+      tar -C $backup_tmp -zcvf /boot/$BACKUP_FILE *
+      cd $work_dir
+
+      sync
+      umount /boot
+    fi
+  fi
 }
 
 platform_restore_backup() {

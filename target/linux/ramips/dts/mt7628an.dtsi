@@ -236,8 +236,8 @@
 			reg = <0x5000 0x1000>;
 			#pwm-cells = <2>;
 
-			pinctrl-names = "default";
-			pinctrl-0 = <&pwm0_pins>, <&pwm1_pins>;
+			interrupt-parent = <&intc>;
+			interrupts = <26>;
 
 			status = "disabled";
 		};

@@ -1,10 +1,12 @@
 #include "mt7628an.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/input/input.h>
 
 / {
-	compatible = "onion,omega2", "mediatek,mt7628an-soc";
+	compatible = "plan44,p44dsbomega2", "onion,omega2p", "onion,omega2", "mediatek,mt7628an-soc";
+	model = "P44 DSB Omega2";
 
 	aliases {
 		led-boot = &led_system;
@@ -17,24 +19,37 @@
 		bootargs = "console=ttyS0,115200";
 	};
 
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x4000000>;
+	};
+
 	leds {
 		compatible = "gpio-leds";
 
 		led_system: system {
 			label = "amber:system";
-			gpios = <&gpio 44 GPIO_ACTIVE_LOW>;
+			/* GPIO 44 is system LED on Omega2, but unused. But it's on P44 expansion connector and we want to use it! */
+			/* gpios = <&gpio 44 GPIO_ACTIVE_LOW>; */
+			/* GPIO 35 is not exposed on Omega2 and Omega2S, we use it as a dummy output here */
+			gpios = <&gpio 35 GPIO_ACTIVE_LOW>;
+			default-state = "on";
 		};
+
+		status1 {
+			label = "p44:green:status1";
+			gpios = <&gpio 19 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		status2 {
+			label = "p44:red:status2";
+			gpios = <&gpio 18 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
 	};
 
-	keys {
-		compatible = "gpio-keys";
-
-		reset {
-			label = "reset";
-			gpios = <&gpio 38 GPIO_ACTIVE_HIGH>;
-			linux,code = <KEY_RESTART>;
-		};
-	};
 };
 
 &gpio {
@@ -42,6 +57,7 @@
   /* (needs patch in gpio-mt7621.c to re-introduce the gpio-base property) */
   gpio-base = <0>;
 };
+
 
 &state_default {
 	gpio {
@@ -105,6 +121,7 @@
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <40000000>;
+		broken-flash-reset;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -120,32 +137,19 @@
 			partition@30000 {
 				label = "u-boot-env";
 				reg = <0x30000 0x10000>;
-				read-only;
+				/* we need a linux writable uboot environment, so WE DONT WANT A read-only HERE! */
 			};
 
-			partition@40000 {
+			factory: partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					eeprom_factory_0: eeprom@0 {
-						reg = <0x0 0x400>;
-					};
-
-					macaddr_factory_28: macaddr@28 {
-						reg = <0x28 0x6>;
-					};
-				};
 			};
 
 			firmware: partition@50000 {
 				compatible = "denx,uimage";
 				label = "firmware";
+				reg = <0x50000 0xfb0000>;
 			};
 		};
 	};
@@ -176,32 +180,35 @@
 	nvmem-cell-names = "mac-address";
 };
 
-&pinctrl {
-	ephy-digital;
-
-	sdxc_iot_mode: sdxc_iot_mode {
-		esd {
-			groups = "esd";
-			function = "iot";
-		};
-
-		sdxc {
-			groups = "sdmode";
-			function = "sdxc";
-		};
-	};
-};
-
 &sdhci {
 	status = "okay";
-
-	pinctrl-0 = <&sdxc_iot_mode>;
-	pinctrl-1 = <&sdxc_iot_mode>;
+	mediatek,cd-low;
 };
 
 &wmac {
 	status = "okay";
 
-	nvmem-cells = <&eeprom_factory_0>;
-	nvmem-cell-names = "eeprom";
+	mediatek,mtd-eeprom = <&factory 0x0>;
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_28: macaddr@28 {
+		reg = <0x28 0x6>;
+	};
+};
+
+&gdma {
+	status = "okay";
+};
+
+&i2s {
+	status = "okay";
+};
+
+&pwm {
+	status = "okay";
 };

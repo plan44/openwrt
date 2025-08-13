@@ -74,7 +74,9 @@ define check_download_integrity
 	       $$(filter undefined,$$(flavor DownloadChecked/$(FILE)))), \
     $$(eval DownloadChecked/$(FILE):=1) \
     $$(if $$(filter-out $$(call gen_sha256sum,$(FILE)),$$(expected_hash)), \
-      $(DL_DIR)/$(FILE): FORCE) \
+      $$(if $$(filter skip,$(MIRROR_HASH)),, \
+	      $(DL_DIR)/$(FILE): FORCE) \
+	    ) \
   )
 endef
 
@@ -227,11 +229,14 @@ define DownloadMethod/rawgit
 	rm -rf $(SUBDIR) && \
 	[ \! -d $(SUBDIR) ] && \
 	git clone $(OPTS) $(URL) $(SUBDIR) && \
-	(cd $(SUBDIR) && git checkout $(SOURCE_VERSION)) && \
+	(cd $(SUBDIR) && git checkout $(SOURCE_VERSION) && \
+	echo "$(URL)" >.gitdownload_url && \
+	echo "$(SOURCE_VERSION)" >.gitdownload_version && \
+	git rev-parse HEAD >.gitdownload_rev) && \
 	export TAR_TIMESTAMP=`cd $(SUBDIR) && git log -1 --format='@%ct'` && \
 	echo "Generating formal git archive (apply .gitattributes rules)" && \
 	(cd $(SUBDIR) && git config core.abbrev 8 && \
-	git archive --format=tar HEAD --output=../$(SUBDIR).tar.git) && \
+	git archive --format=tar HEAD --output=../$(SUBDIR).tar.git --add-file=.gitdownload_rev --add-file=.gitdownload_version --add-file=.gitdownload_url) && \
 	$(if $(filter skip,$(SUBMODULES)),true,$(TAR) --ignore-failed-read -C $(SUBDIR) -f $(SUBDIR).tar.git -r .git .gitmodules 2>/dev/null) && \
 	rm -rf $(SUBDIR) && mkdir $(SUBDIR) && \
 	$(TAR) -C $(SUBDIR) -xf $(SUBDIR).tar.git && \
@@ -240,6 +245,7 @@ define DownloadMethod/rawgit
 	echo "Packing checkout..." && \
 	$(call dl_tar_pack,$(TMP_DIR)/dl/$(FILE),$(SUBDIR)) && \
 	mv $(TMP_DIR)/dl/$(FILE) $(DL_DIR)/ && \
+	sleep 2 && \
 	rm -rf $(SUBDIR);
 endef
 

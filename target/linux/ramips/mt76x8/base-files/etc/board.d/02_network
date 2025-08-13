@@ -21,6 +21,8 @@ ramips_setup_interfaces()
 	minew,g1-c|\
 	onion,omega2p|\
 	onion,omega2|\
+	plan44,p44omega2s| \
+	plan44,p44dsbomega2| \
 	ravpower,rp-wd009|\
 	tama,w06|\
 	tplink,re200-v2|\
@@ -300,6 +302,8 @@ ramips_setup_macs()
 		;;
 	onion,omega2|\
 	onion,omega2p|\
+	plan44,p44omega2s| \
+	plan44,p44dsbomega2| \
 	vocore,vocore2|\
 	vocore,vocore2-lite|\
 	wavlink,wl-wn576a2)

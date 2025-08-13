@@ -524,6 +524,24 @@ define Device/oraybox_x1
 endef
 TARGET_DEVICES += oraybox_x1
 
+define Device/plan44_p44dsbomega2
+  IMAGE_SIZE := 16064k
+  DEVICE_VENDOR := plan44.ch
+  DEVICE_MODEL := P44-DSB-OMEGA2
+  DEVICE_PACKAGES:= kmod-usb2 kmod-usb-ohci uboot-envtools
+  SUPPORTED_DEVICES += p44dsbomega2 omega2 omega2p
+endef
+TARGET_DEVICES += plan44_p44dsbomega2
+
+define Device/plan44_p44omega2s
+  IMAGE_SIZE := 16064k
+  DEVICE_VENDOR := plan44.ch
+  DEVICE_MODEL := P44-OMEGA2S
+  DEVICE_PACKAGES:= kmod-usb2 kmod-usb-ohci uboot-envtools
+  SUPPORTED_DEVICES += p44omega2s omega2 omega2p
+endef
+TARGET_DEVICES += plan44_p44omega2s
+
 define Device/rakwireless_rak633
   IMAGE_SIZE := 7872k
   DEVICE_VENDOR := Rakwireless

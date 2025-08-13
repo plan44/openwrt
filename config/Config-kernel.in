@@ -99,6 +99,31 @@ config KERNEL_RPI_AXIPERF
 	default y
 	depends on KERNEL_PERF_EVENTS && TARGET_bcm27xx
 
+config KERNEL_OF_OVERLAY
+	bool "Compile the kernel with device tree overlay support"
+	default n
+	help
+	  This option enables dynamic device tree fragment loading
+	  and undloading via kernel APIs.
+
+config KERNEL_OF_CONFIGFS
+	bool "Compile the kernel with configfs support for device tree overlays"
+	default n
+	depends on KERNEL_OF_OVERLAY
+	select KERNEL_CONFIGFS_FS
+	help
+	  This option enables dynamic device tree fragment loading and undloading
+	  by creating/deleting directories in configfs' device-tree/overlays.
+
+config KERNEL_CONFIGFS_FS
+	bool "Compile the kernel with userspace-driven configuration filesystem"
+	default n
+	help
+	  configfs is a RAM-based filesystem that provides the converse
+	  of sysfs's functionality. Where sysfs is a filesystem-based
+	  view of kernel objects, configfs is a filesystem-based manager
+	  of kernel objects, or config_items.
+
 config KERNEL_UBSAN
 	bool "Compile the kernel with undefined behaviour sanity checker"
 	help
@@ -573,6 +598,42 @@ config KERNEL_BPF_KPROBE_OVERRIDE
 	bool
 	depends on KERNEL_KPROBES
 	default n
+
+config KERNEL_GPIO_CDEV
+	bool "Compile the kernel with gpiod support (GPIO char device interface)"
+	default n
+	help
+	  Say Y here to add the character device /dev/gpiochipN interface
+	  for GPIOs. The character device allows userspace to control GPIOs
+	  using ioctl() operations.
+
+	  This is the modern way for userspace access and should/will
+	  replace /sys/class/gpio/... over time.
+
+config KERNEL_GPIO_CDEV_V1
+	bool "Compile the kernel with support for GPIO ABI Version 1"
+	default y
+	depends on KERNEL_GPIO_CDEV
+	help
+	  Say Y here to support version 1 of the GPIO CDEV ABI.
+
+	  This ABI version is deprecated.
+	  Please use the latest ABI for new developments.
+
+	  Needed for libgpiod 1.x (only - as of June 2022 - not-yet-released
+	  version 2.x will support v2 ABI)
+
+	  If unsure, say Y.
+
+config KERNEL_GPIO_SYSFS
+	bool "Compile the kernel with /sys/class/gpio/... GPIO support (sysfs interface)"
+	default y
+	help
+	  Say Y here to add the legacy sysfs interface for GPIOs.
+
+	  This ABI is deprecated. If you want to use GPIO from userspace,
+	  use the character device /dev/gpiochipN with the appropriate
+	  ioctl() operations instead.
 
 config KERNEL_AIO
 	bool "Compile the kernel with asynchronous IO support"
