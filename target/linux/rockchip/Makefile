@@ -2,6 +2,7 @@
 
 include $(TOPDIR)/rules.mk
 
+ARCH:=arm
 BOARD:=rockchip
 BOARDNAME:=Rockchip
 FEATURES:=ext4 audio usb usbgadget display gpio fpu pci pcie rootfs-part boot-part squashfs
