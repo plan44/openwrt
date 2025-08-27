@@ -56,12 +56,14 @@ define Device/Default-nandflash
   $(Device/Default-arm32)
   $(Device/Default-sfc-128k)
   FILESYSTEMS := squashfs
-  IMAGES := boot.img rootfs.img env.img idblock.img uboot.img
+  IMAGES := boot.img rootfs.img env.img
+#  IMAGES := boot.img rootfs.img env.img idblock.img uboot.img
   IMAGE/rootfs.img := append-ubi | pad-to $$$$(PAGESIZE) | check-size $$$$(IMAGE_SIZE)
   IMAGE/boot.img := resource-img | boot-arm-bin
   IMAGE/env.img := env-rv1106-nand-img | rockchip-env-img
-  IMAGE/idblock.img := rockchip-idblock-img
-  IMAGE/uboot.img := rockchip-uboot-img
+# we do not create those for now
+#   IMAGE/idblock.img := rockchip-idblock-img
+#   IMAGE/uboot.img := rockchip-uboot-img
 endef
 
 define Device/luckfox_pico-max
@@ -71,10 +73,12 @@ define Device/luckfox_pico-max
   SOC := rv1106
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max
-  UBOOT_DEVICE_NAME := rv1106-emmc
+  UBOOT_DEVICE_NAME := rv1106-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  IMAGES += sysupgrade.img.gz
-  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
+  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
 
