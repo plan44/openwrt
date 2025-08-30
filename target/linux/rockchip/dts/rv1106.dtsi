@@ -1150,10 +1150,10 @@
 		#size-cells = <1>;
 		ranges = <0 0xff6c0000 0x40000>;
 		rkisp_sram: rkisp-sram@0 {
-			reg = <0x0 0x3e000>;
+			reg = <0x0 0x3f000>;
 		};
-		hpmcu_sram: hpmcu-sram@3e000 {
-			reg = <0x3e000 0x2000>;
+		hpmcu_sram: hpmcu-sram@3f000 {
+			reg = <0x3f000 0x1000>;
 		};
 	};
 
@@ -1448,7 +1448,7 @@
 		dma-names = "tx", "rx";
 		resets = <&cru SRST_M_I2S0_8CH_TX>, <&cru SRST_M_I2S0_8CH_RX>;
 		reset-names = "tx-m", "rx-m";
-		rockchip,clk-trcm = <1>;
+		rockchip,trcm-sync-tx-only;
 		#sound-dai-cells = <0>;
 		status = "disabled";
 	};
