@@ -1,8 +1,23 @@
+Thanks for contributing to this effort of adding
+rockchip rv1106 suppport to OpenWrt 24.10
+
+I do not have any specific rules for PRs at this time,
+any contribution is welcome.
+
+However, if you intend to contribute to upstream OpenWrt,
+please make your PR there: https://github.com/openwrt/openwrt
+
+Here's the original OpenWrt PR template:
+
+--- snip ---
+
 Thanks for your contribution to OpenWrt!
 
 To help keep the codebase consistent and readable,
 and to help people review your contribution,
 we ask you to follow the rules you find in the wiki at this link
 https://openwrt.org/submitting-patches
+
+---
 
 Please remove this message before posting the pull request.
