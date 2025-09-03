@@ -72,7 +72,7 @@ endef
 define Device/luckfox_pico-max
   $(Device/Default-nandflash)
   DEVICE_TITLE := Luckfox Pico Max
-  SUPPORTED_DEVICES := luckfox,pico-max
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-max
   SOC := rv1106
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1106g-luckfox-pico-pro-max

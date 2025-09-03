@@ -11,7 +11,7 @@
 
 / {
 	model = "Luckfox Pico Max";
-	compatible = "luckfox, pico-max", "rockchip,rv1106";
+	compatible = "luckfox,rv1106-luckfox-pico-max", "rockchip,rv1106";
 };
 
 
