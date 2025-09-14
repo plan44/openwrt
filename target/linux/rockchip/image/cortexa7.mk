@@ -69,6 +69,23 @@ define Device/Default-nandflash
 #   IMAGE/uboot.img := rockchip-uboot-img
 endef
 
+
+define Device/p44-xx-pico-max
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := P44-xx based on Pico Max
+  SUPPORTED_DEVICES := plan44,p44-xx-pico-max
+  SOC := rv1106
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1106g-p44-xx-pico-max
+  UBOOT_DEVICE_NAME := rv1106-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
+  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += p44-xx-pico-max
+
 define Device/luckfox_pico-max
   $(Device/Default-nandflash)
   DEVICE_TITLE := Luckfox Pico Max
