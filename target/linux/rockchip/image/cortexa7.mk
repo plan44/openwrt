@@ -70,7 +70,7 @@ define Device/Default-nandflash
 endef
 
 
-define Device/p44-xx-pico-max
+define Device/plan44_p44-xx-pico-max
   $(Device/Default-nandflash)
   DEVICE_TITLE := P44-xx based on Pico Max
   SUPPORTED_DEVICES := plan44,p44-xx-pico-max
@@ -84,7 +84,7 @@ define Device/p44-xx-pico-max
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
-TARGET_DEVICES += p44-xx-pico-max
+TARGET_DEVICES += plan44_p44-xx-pico-max
 
 define Device/luckfox_pico-max
   $(Device/Default-nandflash)
