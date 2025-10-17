@@ -3,6 +3,11 @@
 # Copyright (C) 2020 Tobias Maedel
 
 ### env.img generate scripts ###
+define Build/env-rv1103b-nand-img
+	if [ ! -d $(STAGING_DIR_IMAGE) ]; then mkdir -p $(STAGING_DIR_IMAGE) ; fi
+	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1103b-uboot.env.spi-nand.txt
+endef
+
 define Build/env-rv1106-sd-img
 	if [ ! -d $(STAGING_DIR_IMAGE) ]; then mkdir -p $(STAGING_DIR_IMAGE) ; fi
 	mkenvimage -s 0x8000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.sd.txt
@@ -68,6 +73,24 @@ define Device/Default-nandflash
 #   IMAGE/idblock.img := rockchip-idblock-img
 #   IMAGE/uboot.img := rockchip-uboot-img
 endef
+
+
+define Device/onion_omega4
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Onion Omega4
+  SUPPORTED_DEVICES := onion,onion_omega4
+  SOC := rv1103b
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1103b-evb1-v10
+  UBOOT_DEVICE_NAME := rv1103b-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
+  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += onion_omega4
+
 
 
 define Device/plan44_p44-xx-pico-max
