@@ -78,7 +78,7 @@ endef
 define Device/onion_omega4
   $(Device/Default-nandflash)
   DEVICE_TITLE := Onion Omega4
-  SUPPORTED_DEVICES := onion,onion_omega4
+  SUPPORTED_DEVICES := onion,rv1103b-omega4-evb onion,onion_omega4
   SOC := rv1103b
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1103b-omega4-evb

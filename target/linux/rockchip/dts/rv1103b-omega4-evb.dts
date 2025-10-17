@@ -11,7 +11,7 @@
 
 / {
 	model = "Omega4 EVB P2-02";
-	compatible = "onion,rv1106-omega4-evb", "rockchip,rv1103b";
+	compatible = "onion,rv1103b-omega4-evb", "rockchip,rv1103b";
 
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
