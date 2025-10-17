@@ -78,10 +78,10 @@ endef
 define Device/onion_omega4
   $(Device/Default-nandflash)
   DEVICE_TITLE := Onion Omega4
-  SUPPORTED_DEVICES := onion,onion_omega4
+  SUPPORTED_DEVICES := onion,rv1103b-omega4-evb onion,onion_omega4
   SOC := rv1103b
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1103b-evb1-v10
+  DEVICE_DTS := rv1103b-omega4-evb
   UBOOT_DEVICE_NAME := rv1103b-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar

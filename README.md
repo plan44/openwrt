@@ -68,11 +68,6 @@ Enter the **absolute path** to your `linux-stable` checkout from Step 1.
 After setting the external kernel path, **save and exit** the configuration menu.
 
 
-
-
-
-
-
 You’re now ready to build OpenWrt for the Omega4.
 
 
@@ -81,8 +76,12 @@ You’re now ready to build OpenWrt for the Omega4.
 Thanks to [@plan44](https://github.com/plan44) for the initial Rockchip porting work that made Omega4 support possible.
 
 
-Original OpenWrt README.md below:
 
+
+
+
+
+Original OpenWrt README.md below:
 ---
 
 
