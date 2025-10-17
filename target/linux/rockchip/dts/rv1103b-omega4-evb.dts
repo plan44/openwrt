@@ -2,15 +2,17 @@
 /*
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  * Copyright (c) 2025 plan44.ch/luz
+ * Copyright (c) 2025 Onion Corporation
  */
 
 /dts-v1/;
 
 #include "rv1103b.dtsi"
+#include "rv1103b-pinctrl.dtsi"
 #include "rv1103b-omega4.dtsi"
 
 / {
-	model = "Omega4 EVB P2-02";
+	model = "Omega4 EVB P2";
 	compatible = "onion,rv1103b-omega4-evb", "rockchip,rv1103b";
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -157,7 +159,7 @@
 // };
 &i2c3 {
 	status = "okay";
-	pinctrl-0 = <&i2c3m1_xfer>;
+	pinctrl-0 = <&i2c3m1_xfer_pins>;
 	clock-frequency = <100000>;
 };
 
@@ -165,7 +167,7 @@
 &spi0 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&spi0m0_pins>;
+	// pinctrl-0 = <&spi0m0_pins>;
 	cs-gpios = <&gpio1 RK_PC0 1>;
 	// cs-gpios = <&gpio1 26 1>;
 	#address-cells = <1>;
@@ -181,33 +183,22 @@
 
 /**********UART**********/
 
-// &uart0 {
-// 	status = "okay";
-// 	pinctrl-names = "default";
-// 	pinctrl-0 = <&uart0m1_xfer>;
-// };
+&uart0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0m1_xfer_pins>;
+};
 
 &uart1 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart1m1_xfer>;
+	pinctrl-0 = <&uart1m1_xfer_pins>;
 };
 
 &uart2 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart2m1_xfer>;
-};
-
-&uart3 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart3m1_xfer>;
-};
-&uart4 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart4m1_xfer>;
+	pinctrl-0 = <&uart2m1_xfer_pins>;
 };
 
 
@@ -241,18 +232,18 @@
 //	pinctrl-names = "active";
 //	pinctrl-0 = <&pwm4m2_pins>;
 //};
-&pwm5 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm5m1_pins>;
-	// pinctrl-0 = <&pwm5m2_pins>;
-};
-&pwm6 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm6m1_pins>;
-	// pinctrl-0 = <&pwm6m2_pins>;
-};
+// &pwm5 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm5m1_pins>;
+// 	// pinctrl-0 = <&pwm5m2_pins>;
+// };
+// &pwm6 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm6m1_pins>;
+// 	// pinctrl-0 = <&pwm6m2_pins>;
+// };
 //&pwm7 {
 //	status = "okay";
 //	pinctrl-names = "active";
@@ -271,20 +262,20 @@
 //	pinctrl-0 = <&pwm9m0_pins>;
 //};
 
-&pwm10 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm10m1_pins>;
-	// pinctrl-0 = <&pwm10m2_pins>;
-	// pinctrl-0 = <&pwm10m0_pins>;
-};
-&pwm11 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm11m1_pins>;
-	// pinctrl-0 = <&pwm11m2_pins>;
-	// pinctrl-0 = <&pwm11m0_pins>;
-};
+// &pwm10 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm10m1_pins>;
+// 	// pinctrl-0 = <&pwm10m2_pins>;
+// 	// pinctrl-0 = <&pwm10m0_pins>;
+// };
+// &pwm11 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm11m1_pins>;
+// 	// pinctrl-0 = <&pwm11m2_pins>;
+// 	// pinctrl-0 = <&pwm11m0_pins>;
+// };
 
 
 &rtc {
