@@ -44,7 +44,14 @@ cd <this-repo-directory>
 
 ---
 
-### 3. Configure OpenWrt to use the external kernel tree
+
+### 3.  Apply the Omega4 default build configuration
+```
+cp omega4_defconfig .config
+make defconfig
+```
+
+### 4. Configure OpenWrt to use the external kernel tree
 
 Run the OpenWrt configuration tool:
 
@@ -61,11 +68,11 @@ Advanced configuration options (for developers)
 
 Enter the **absolute path** to your `linux-stable` checkout from Step 1.
 
----
 
-### 4. Save and exit
 
 After setting the external kernel path, **save and exit** the configuration menu.
+
+
 
 
 You’re now ready to build OpenWrt for the Omega4.
