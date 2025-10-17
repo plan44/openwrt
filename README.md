@@ -1,9 +1,87 @@
-# Work in progress for supporting OpenWrt 24.10.2 on Rockchip rv1106/rv1103(b) based targets
+# OpenWrt 24.10.2 — Omega4 Support (Work in Progress)
 
-For questions related to this specific branch please use PRs and issues on this repo, for everything else not related to rv1106 support please [go to the original OpenWrt repo](https://github.com/openwrt/openwrt).
+This branch adds and stabilizes **OpenWrt 24.10.2** support for the **Omega4**, a **Rockchip RV1103B-based System on Module (SOM)**.
+
+> ⚠️ **Status:** Work in progress.
+> Changes are under active development and will be upstreamed once stable.
+
+---
+
+## Repository Scope
+
+* For **Omega4-specific questions, issues, or contributions**, please open a **Pull Request (PR)** or **Issue** in this repository.
+* For **general OpenWrt topics** not related to Omega4 support, please visit the [official OpenWrt repository](https://github.com/openwrt/openwrt).
+
+---
+
+## 🛠️ Setting Up the Build Environment for Omega4
+
+Follow the steps below to prepare your build environment.
+
+### 1. Clone the modified kernel (v6.6.93)
+
+Get the custom Linux kernel with Rockchip-specific patches:
+
+```bash
+git clone https://github.com/OnionIoT/linux-stable.git
+cd linux-stable
+# Checkout the kernel version used for Omega4
+git checkout openwrt-6.6.93
+```
+
+> The goal is to upstream these modifications to the mainline once Omega4 support stabilizes.
+
+---
+
+### 2. Clone this repository
+
+Clone the OpenWrt repository that includes Omega4 build configurations:
+
+```bash
+git clone <this-repo-url>
+cd <this-repo-directory>
+```
+
+---
+
+### 3. Configure OpenWrt to use the external kernel tree
+
+Run the OpenWrt configuration tool:
+
+```bash
+make menuconfig
+```
+
+Then navigate to:
+
+```
+Advanced configuration options (for developers)
+  → Use external kernel tree
+```
+
+Enter the **absolute path** to your `linux-stable` checkout from Step 1.
+
+---
+
+### 4. Save and exit
+
+After setting the external kernel path, **save and exit** the configuration menu.
+
+
+You’re now ready to build OpenWrt for the Omega4.
+
+
+## Acknowledgements
+
+Thanks to [@plan44](https://github.com/plan44) for the initial Rockchip porting work that made Omega4 support possible.
+
+
+
+
+
+
 
 Original OpenWrt README.md below:
-
 ---
 
 
