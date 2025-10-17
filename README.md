@@ -1,4 +1,4 @@
-# Work in progress for supporting OpenWrt 24.10.2 on Rockchip rv1106 based targets
+# Work in progress for supporting OpenWrt 24.10.2 on Rockchip rv1106/rv1103(b) based targets
 
 For questions related to this specific branch please use PRs and issues on this repo, for everything else not related to rv1106 support please [go to the original OpenWrt repo](https://github.com/openwrt/openwrt).
 
