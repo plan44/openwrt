@@ -146,7 +146,7 @@
 			#clock-cells = <0>;
 			clock-output-names = "clk_npu_pvtpll";
 			assigned-clocks = <&pvtpll_npu>;
-			assigned-clock-rates = <700000000>;
+			assigned-clock-rates = <800000000>;
 		};
 	};
 
@@ -604,13 +604,14 @@
 	};
 
 	fspi1: spi@205c0000 {
-		compatible = "rockchip,fspi";
+		compatible = "rockchip,rv1103b-fspi", "rockchip,fspi";
 		reg = <0x205c0000 0x4000>;
 		interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru SCLK_SFC_2X_PMU1>, <&cru HCLK_SFC_PMU1>;
 		clock-names = "clk_sfc", "hclk_sfc";
 		pinctrl-names = "default";
 		pinctrl-0 = <&psram_spi_bus4_pins &psram_spi_clk_pins &psram_spi_cs0n_pins>;
+		rockchip,grf = <&grf>;
 		rockchip,max-dll = <0x7F>;
 		rockchip,sclk-x2-bypass;
 		#address-cells = <1>;
@@ -1213,11 +1214,12 @@
 	};
 
 	fspi0: spi@20d40000 {
-		compatible = "rockchip,fspi";
+		compatible = "rockchip,rv1103b-fspi", "rockchip,fspi";
 		reg = <0x20d40000 0x4000>;
 		interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru SCLK_SFC_2X>, <&cru HCLK_SFC>;
 		clock-names = "clk_sfc", "hclk_sfc";
+		rockchip,grf = <&grf>;
 		rockchip,max-dll = <0xFF>;
 		rockchip,sclk-x2-bypass;
 		#address-cells = <1>;
@@ -1329,7 +1331,7 @@
 		clocks = <&cru ACLK_RKNN>, <&cru HCLK_RKNN>;
 		clock-names = "aclk", "hclk";
 		assigned-clocks = <&cru ACLK_RKNN>;
-		assigned-clock-rates = <700000000>;
+		assigned-clock-rates = <800000000>;
 		resets = <&cru SRST_ARESETN_RKNN>, <&cru SRST_HRESETN_RKNN>;
 		reset-names = "srst_a", "srst_h";
 		operating-points-v2 = <&npu_opp_table>;
