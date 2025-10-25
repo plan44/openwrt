@@ -2,16 +2,18 @@
 /*
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  * Copyright (c) 2025 plan44.ch/luz
+ * Copyright (c) 2025 Onion Corporation
  */
 
 /dts-v1/;
 
 #include "rv1103b.dtsi"
-#include "rv1106-omega4.dtsi"
+#include "rv1103b-pinctrl.dtsi"
+#include "rv1103b-omega4.dtsi"
 
 / {
-	model = "Omega4 EVB P2-02";
-	compatible = "onion,rv1106-omega4-evb", "rockchip,rv1103b";
+	model = "Omega4 EVB P2";
+	compatible = "onion,rv1103b-omega4-evb", "rockchip,rv1103b";
 
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
@@ -89,17 +91,6 @@
 };
 
 
-// No EMMC
-// &emmc {
-// 	no-sdio;
-// 	no-sd;
-// 	bus-width = <4>;
-// 	cap-mmc-highspeed;
-// 	non-removable;
-// 	mmc-hs200-1_8v;
-// 	status = "okay";
-// };
-
 /**********FLASH**********/
 &fspi0 {
 	status = "okay";
@@ -161,7 +152,7 @@
 // };
 &i2c3 {
 	status = "okay";
-	pinctrl-0 = <&i2c3m1_xfer>;
+	pinctrl-0 = <&i2c3m1_xfer_pins>;
 	clock-frequency = <100000>;
 };
 
@@ -169,7 +160,7 @@
 &spi0 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&spi0m0_pins>;
+	// pinctrl-0 = <&spi0m0_pins>;
 	cs-gpios = <&gpio1 RK_PC0 1>;
 	// cs-gpios = <&gpio1 26 1>;
 	#address-cells = <1>;
@@ -193,7 +184,7 @@
 };
 
 
-// UART2 M1 is available, no predefined use
+// UART1 M1 is available, no predefined use
 // &uart1 {
 // 	status = "okay";
 // 	pinctrl-names = "default";
