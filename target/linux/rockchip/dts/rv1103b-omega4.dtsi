@@ -89,16 +89,17 @@
 	cpu-supply = <&vdd_arm>;
 };
 
-# &emmc {
-# 	bus-width = <4>;
-# 	cap-mmc-highspeed;
-# 	non-removable;
-# 	mmc-hs200-1_8v;
-# 	rockchip,default-sample-phase = <90>;
-# 	no-sdio;
-# 	no-sd;
-# 	status = "okay";
-# };
+/* Omega4 does not have emmc on board */
+// &emmc {
+// 	bus-width = <4>;
+// 	cap-mmc-highspeed;
+// 	non-removable;
+// 	mmc-hs200-1_8v;
+// 	rockchip,default-sample-phase = <90>;
+// 	no-sdio;
+// 	no-sd;
+// 	status = "okay";
+// };
 
 &fiq_debugger {
 	rockchip,irq-mode-enable = <1>;
@@ -184,3 +185,14 @@
 	extcon = <&u2phy>;
 	status = "okay";
 };
+
+/* Omega4 module specific HW use */
+
+// UART2 M1 is connected to WiFi/BT, not available on the EVB
+&uart2 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2m1_xfer_pins &uart2m1_ctsn_pins &uart2m1_rtsn_pins>;
+};
+
+
