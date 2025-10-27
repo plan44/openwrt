@@ -38,6 +38,7 @@ platform_do_upgrade() {
 		emmc_do_upgrade "$1"
 		;;
 	luckfox,rv1106-luckfox-pico-max|\
+	onion,rv1103b-omega4-evb|\
 	plan44,p44-xx-pico-max)
 		# CI_xx are mtd partition names, known by the kernel via /sys/block/mtdblockX/device/name
 		CI_KERNPART="boot"
@@ -63,6 +64,7 @@ platform_check_image() {
 		return $?
 		;;
 	luckfox,rv1106-luckfox-pico-max|\
+	onion,rv1103b-omega4-evb|\
 	plan44,p44-xx-pico-max)
 		nand_do_platform_check "$board" "$1"
 		return $?
