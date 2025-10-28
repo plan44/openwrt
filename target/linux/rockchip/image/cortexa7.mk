@@ -79,7 +79,9 @@ endef
 define Device/onion_omega4-evb
   $(Device/Default-nandflash)
   DEVICE_TITLE := Onion Omega4 EVB
+  # note: SUPPORTED_DEVICES is not honoured by nand.sh's nand_do_platform_check(), so only BOARD_NAME is relevant
   SUPPORTED_DEVICES := onion,rv1103b-omega4-evb onion,onion_omega4
+  BOARD_NAME := onion,rv1103b-omega4-evb # must match compatible in dts (which defines the runtime board name)
   SOC := rv1103b
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1103b-omega4-evb
