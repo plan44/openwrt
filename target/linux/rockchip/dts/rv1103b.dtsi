@@ -507,6 +507,7 @@
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&dmac 1>, <&dmac 0>;
+		dma-names = "tx", "rx";
 		clock-frequency = <24000000>;
 		clocks = <&cru SCLK_UART0>, <&cru PCLK_UART0>;
 		clock-names = "baudclk", "apb_pclk";
@@ -853,6 +854,7 @@
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&dmac 3>, <&dmac 2>;
+		dma-names = "tx", "rx";
 		clock-frequency = <24000000>;
 		clocks = <&cru SCLK_UART1>, <&cru PCLK_UART1>;
 		clock-names = "baudclk", "apb_pclk";
@@ -868,6 +870,7 @@
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&dmac 5>, <&dmac 4>;
+		dma-names = "tx", "rx";
 		clock-frequency = <24000000>;
 		clocks = <&cru SCLK_UART2>, <&cru PCLK_UART2>;
 		clock-names = "baudclk", "apb_pclk";
