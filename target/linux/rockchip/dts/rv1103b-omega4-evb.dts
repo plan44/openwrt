@@ -53,14 +53,15 @@
 		pinctrl-0 = <&sdmmc_volt>;
 	};
 
-	wireless_wlan: wireless-wlan {
-		compatible = "wlan-platdata";
-		wifi_chip_type = "rtl8189fs";
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_host_wake_irq>;
-		WIFI,host_wake_irq = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-	};
+// That's the Rockchip EVB module, Omega4 has another module
+// 	wireless_wlan: wireless-wlan {
+// 		compatible = "wlan-platdata";
+// 		wifi_chip_type = "rtl8189fs";
+// 		pinctrl-names = "default";
+// 		pinctrl-0 = <&wifi_host_wake_irq>;
+// 		WIFI,host_wake_irq = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
+// 		status = "okay";
+// 	};
 };
 
 &pinctrl {
@@ -81,34 +82,18 @@
 		};
 	};
 
-	wireless-wlan {
-		wifi_host_wake_irq: wifi-host-wake-irq {
-			rockchip,pins = <2 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
+// That's for the Rockchip EVB module, Omega4 has another module
+// 	wireless-wlan {
+// 		wifi_host_wake_irq: wifi-host-wake-irq {
+// 			rockchip,pins = <2 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+// 		};
+// 	};
 };
 
-&emmc {
-	no-sdio;
-	no-sd;
-	bus-width = <4>;
-	cap-mmc-highspeed;
-	non-removable;
-	mmc-hs200-1_8v;
-	status = "okay";
-};
 
 /**********FLASH**********/
-&fspi0 {
-	status = "okay";
-	flash@0 {
-		compatible = "spi-nand";
-		reg = <0>;
-		spi-max-frequency = <75000000>;
-		spi-rx-bus-width = <4>;
-		spi-tx-bus-width = <1>;
-	};
-};
+
+// is on the omega4 module itself, not defined here
 
 /**********SDMMC**********/
 &sdmmc0 {
@@ -183,26 +168,31 @@
 
 /**********UART**********/
 
+// UART0  M0 is the system console on the O4-EVB connected to CP2104
 &uart0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart0m1_xfer_pins>;
-};
-
-&uart1 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart1m1_xfer_pins>;
-};
-
-&uart2 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart2m1_xfer_pins>;
+ 	status = "okay";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart0m0_xfer_pins>;
 };
 
 
-// /**********PWM**********/
+// UART1 M1 is available, no predefined use
+// &uart1 {
+// 	status = "okay";
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&uart1m1_xfer_pins>;
+// };
+
+// UART2 M1 is connected to WiFi/BT, not available on the EVB
+
+
+
+/**********PWM**********/
+
+// Note: pwmX are aliases to pwmY_4ch_Z (Y=0..2, Z=0..3) => total of 12 PWMs
+
+
+// %%% note: pinctl names below are probably wrong, these must be more like: pwm0m0_ch0_pins
 
 // &pwm0 {
 // 	status = "okay";
@@ -216,22 +206,21 @@
 // 	pinctrl-0 = <&pwm1m0_pins>;
 // 	// pinctrl-0 = <&pwm1m1_pins>;
 // };
-
-//&pwm2 {
-//	status = "okay";
-//	pinctrl-names = "active";
-//	pinctrl-0 = <&pwm2m2_pins>;
-//};
-//&pwm3 {
-//	status = "okay";
-//	pinctrl-names = "active";
-//	pinctrl-0 = <&pwm3m2_pins>;
-//};
-//&pwm4 {
-//	status = "okay";
-//	pinctrl-names = "active";
-//	pinctrl-0 = <&pwm4m2_pins>;
-//};
+// &pwm2 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm2m2_pins>;
+// };
+// &pwm3 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm3m2_pins>;
+// };
+// &pwm4 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm4m2_pins>;
+// };
 // &pwm5 {
 // 	status = "okay";
 // 	pinctrl-names = "active";
@@ -244,24 +233,23 @@
 // 	pinctrl-0 = <&pwm6m1_pins>;
 // 	// pinctrl-0 = <&pwm6m2_pins>;
 // };
-//&pwm7 {
-//	status = "okay";
-//	pinctrl-names = "active";
-//	pinctrl-0 = <&pwm7m2_pins>;
-//};
-//&pwm8 {
-//	status = "okay";
-//	pinctrl-names = "active";
-//	// pinctrl-0 = <&pwm8m1_pins>;
-//	pinctrl-0 = <&pwm8m0_pins>;
-//};
-//&pwm9 {
-//	status = "okay";
-//	pinctrl-names = "active";
-//	// pinctrl-0 = <&pwm9m1_pins>;
-//	pinctrl-0 = <&pwm9m0_pins>;
-//};
-
+// &pwm7 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm7m2_pins>;
+// };
+// &pwm8 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	// pinctrl-0 = <&pwm8m1_pins>;
+// 	pinctrl-0 = <&pwm8m0_pins>;
+// };
+// &pwm9 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	// pinctrl-0 = <&pwm9m1_pins>;
+// 	pinctrl-0 = <&pwm9m0_pins>;
+// };
 // &pwm10 {
 // 	status = "okay";
 // 	pinctrl-names = "active";

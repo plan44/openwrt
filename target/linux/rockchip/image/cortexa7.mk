@@ -68,28 +68,32 @@ define Device/Default-nandflash
 #  IMAGES := boot.img rootfs.img env.img idblock.img uboot.img
   IMAGE/rootfs.img := append-ubi | pad-to $$$$(PAGESIZE) | check-size $$$$(IMAGE_SIZE)
   IMAGE/boot.img := resource-img | boot-arm-bin
-  IMAGE/env.img := env-rv1106-nand-img | rockchip-env-img
+# env is target specific, do not build one here
+#   IMAGE/env.img := env-rv1106-nand-img | rockchip-env-img
 # we do not create those for now
 #   IMAGE/idblock.img := rockchip-idblock-img
 #   IMAGE/uboot.img := rockchip-uboot-img
 endef
 
 
-define Device/onion_omega4
+define Device/onion_omega4-evb
   $(Device/Default-nandflash)
-  DEVICE_TITLE := Onion Omega4
+  DEVICE_TITLE := Onion Omega4 EVB
+  # note: SUPPORTED_DEVICES is not honoured by nand.sh's nand_do_platform_check(), so only BOARD_NAME is relevant
   SUPPORTED_DEVICES := onion,rv1103b-omega4-evb onion,onion_omega4
+  BOARD_NAME := onion,rv1103b-omega4-evb # must match compatible in dts (which defines the runtime board name)
   SOC := rv1103b
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1103b-omega4-evb
   UBOOT_DEVICE_NAME := rv1103b-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
-  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
+  IMAGE/boot.img := append-kernel # override Default-nandflash boot.img, otherwise kernel-bin will be wrapped twice
+  IMAGE/env.img := env-rv1103b-nand-img | rockchip-env-img # override Default-nandflash env.img because we need rv1103 specific env layout-
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
-TARGET_DEVICES += onion_omega4
+TARGET_DEVICES += onion_omega4-evb
 
 
 

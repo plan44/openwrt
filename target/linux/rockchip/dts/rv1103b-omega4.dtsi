@@ -7,7 +7,7 @@
 / {
 	chosen {
 		/*  bootargs = "earlycon=uart8250,mmio32,0x20540000 console=ttyFIQ0 root=/dev/mmcblk0p5 rootfstype=ext4 rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=32K"; */
-		bootargs = "earlycon=uart8250,mmio32,0x20540000 console=ttyS2,115200";
+		bootargs = "earlycon=uart8250,mmio32,0x20540000 console=ttyS0,115200";
 	};
 
 	acodec_sound: acodec-sound {
@@ -156,6 +156,14 @@
 	status = "okay";
 };
 
+&uart0 {
+ 	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
 &u2phy {
 	status = "okay";
 };
@@ -173,3 +181,28 @@
 	extcon = <&u2phy>;
 	status = "okay";
 };
+
+
+
+/* Omega4 module specific HW use */
+
+// UART2 M1 is connected to WiFi/BT, not available on the EVB
+&uart2 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2m1_xfer_pins &uart2m1_ctsn_pins &uart2m1_rtsn_pins>;
+};
+
+// FSPI0 (aliased as SPI1) is connected to on-board W25N02KVZEIR QSPI NAND flash
+&fspi0 {
+	status = "okay";
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-max-frequency = <75000000>;
+		spi-rx-bus-width = <4>; // can fast quad read
+		spi-tx-bus-width = <1>; // cannot quad write
+	};
+};
+
+
