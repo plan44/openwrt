@@ -1,0 +1,13 @@
+#!/bin/sh
+
+mac=$(cat /sys/class/net/eth0/address)
+last4=$(echo "$mac" | awk -F: '{print toupper($(NF-1) $NF)}')
+
+
+uci -q batch <<-EOF > /dev/null
+	set system.@system[0].hostname=Omega-$last4
+	commit system
+EOF
+
+
+exit 0
