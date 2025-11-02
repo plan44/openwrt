@@ -132,7 +132,9 @@ define KernelPackage/mac80211
   DEPENDS+= +kmod-cfg80211 +kmod-crypto-cmac +kmod-crypto-ccm +kmod-crypto-gcm +hostapd-common
   KCONFIG:=\
 	CONFIG_AVERAGE=y
-  FILES:= $(PKG_BUILD_DIR)/net/mac80211/mac80211.ko
+  FILES:= \
+	$(PKG_BUILD_DIR)/net/mac80211/mac80211.ko \
+	$(LINUX_DIR)/lib/crypto/libarc4.ko
   ABI_VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
   MENU:=1
 endef
