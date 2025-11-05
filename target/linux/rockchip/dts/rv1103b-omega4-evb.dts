@@ -148,6 +148,27 @@
 // 	clock-frequency = <100000>;
 // };
 
+&i2c0 {
+  status = "okay";
+  clock-frequency = <100000>;
+  pinctrl-names = "default";
+  pinctrl-0 = <&i2c0m2_xfer_pins>;
+  oled@3c {
+    //compatible = "solomon,ssd1306";
+    compatible = "sinowealth,sh1106";
+    reg = <0x3c>;
+    //reset-gpios = <&gpioX Y GPIO_ACTIVE_LOW>;
+    solomon,height = <64>;
+    solomon,width = <128>;
+    //solomon,segment-no-remap;
+    //solomon,page-offset = <0>;
+    //solomon,com-offset = <0>;
+    //solomon,col-offset = <2>;
+    //solomon,com-invdir;
+  };
+};
+
+
 // /**********SPI**********/
 // &spi0 {
 // 	status = "okay";
