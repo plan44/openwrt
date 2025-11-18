@@ -495,6 +495,8 @@
 		#size-cells = <0>;
 		clocks = <&cru CLK_I2C0>, <&cru PCLK_I2C0>;
 		clock-names = "i2c", "pclk";
+		resets = <&cru SRST_RESETN_I2C0>, <&cru SRST_PRESETN_I2C0>;
+		reset-names = "i2c", "apb";
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2c0m0_xfer_pins>;
 		status = "disabled";
@@ -507,6 +509,7 @@
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&dmac 1>, <&dmac 0>;
+		dma-names = "tx", "rx";
 		clock-frequency = <24000000>;
 		clocks = <&cru SCLK_UART0>, <&cru PCLK_UART0>;
 		clock-names = "baudclk", "apb_pclk";
@@ -853,6 +856,7 @@
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&dmac 3>, <&dmac 2>;
+		dma-names = "tx", "rx";
 		clock-frequency = <24000000>;
 		clocks = <&cru SCLK_UART1>, <&cru PCLK_UART1>;
 		clock-names = "baudclk", "apb_pclk";
@@ -868,6 +872,7 @@
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&dmac 5>, <&dmac 4>;
+		dma-names = "tx", "rx";
 		clock-frequency = <24000000>;
 		clocks = <&cru SCLK_UART2>, <&cru PCLK_UART2>;
 		clock-names = "baudclk", "apb_pclk";
@@ -893,6 +898,8 @@
 		#size-cells = <0>;
 		clocks = <&cru CLK_I2C1>, <&cru PCLK_I2C1>;
 		clock-names = "i2c", "pclk";
+		resets = <&cru SRST_RESETN_I2C1>, <&cru SRST_PRESETN_I2C1>;
+		reset-names = "i2c", "apb";
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2c1m0_xfer_pins>;
 		status = "disabled";
@@ -906,6 +913,8 @@
 		#size-cells = <0>;
 		clocks = <&cru CLK_I2C2>, <&cru PCLK_I2C2>;
 		clock-names = "i2c", "pclk";
+		resets = <&cru SRST_RESETN_I2C2>, <&cru SRST_PRESETN_I2C2>;
+		reset-names = "i2c", "apb";
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2c2m0_xfer_pins>;
 		status = "disabled";
@@ -919,6 +928,8 @@
 		#size-cells = <0>;
 		clocks = <&cru CLK_I2C3>, <&cru PCLK_I2C3>;
 		clock-names = "i2c", "pclk";
+		resets = <&cru SRST_RESETN_I2C3>, <&cru SRST_PRESETN_I2C3>;
+		reset-names = "i2c", "apb";
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2c3m0_xfer_pins>;
 		status = "disabled";
@@ -932,6 +943,8 @@
 		#size-cells = <0>;
 		clocks = <&cru CLK_I2C4>, <&cru PCLK_I2C4>;
 		clock-names = "i2c", "pclk";
+		resets = <&cru SRST_RESETN_I2C4>, <&cru SRST_PRESETN_I2C4>;
+		reset-names = "i2c", "apb";
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2c4m0_xfer_pins>;
 		rockchip,grf = <&grf>;
