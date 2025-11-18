@@ -111,12 +111,14 @@
 	status = "okay";
 };
 
+// we might want to have this as GPIO
 &pwm0_4ch_0 {
-	status = "okay";
+	status = "disabled";
 };
 
+// we might want to have this as GPIO
 &pwm0_4ch_3 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rga2 {
@@ -156,12 +158,16 @@
 	status = "okay";
 };
 
+// UART0 can be exposed with M0 or M2, so we do not set a default
 &uart0 {
- 	status = "okay";
+ 	status = "disabled";
 };
 
+// UART1 is only exposed on Omega4 in M1 state, so set this as default
 &uart1 {
-	status = "okay";
+	status = "disabled";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart1m1_xfer_pins>;
 };
 
 &u2phy {
