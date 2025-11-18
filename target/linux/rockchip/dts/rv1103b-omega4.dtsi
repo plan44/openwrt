@@ -55,29 +55,23 @@
 	};
 
 	vdd_logic: vdd-logic {
-		compatible = "pwm-regulator";
-		pwms = <&pwm0_4ch_3 0 5000 1>;
+		compatible = "regulator-fixed";
 		regulator-name = "vdd_logic";
-		regulator-min-microvolt = <810000>;
-		regulator-max-microvolt = <1006000>;
-		regulator-init-microvolt = <900000>;
+		regulator-min-microvolt = <900000>;
+		regulator-max-microvolt = <900000>;
 		regulator-always-on;
 		regulator-boot-on;
-		regulator-settling-time-up-us = <250>;
-		pwm-supply = <&vcc_sys>;
+		vin-supply = <&vcc_sys>;
 	};
 
 	vdd_npu: vdd_arm: vdd-arm {
-		compatible = "pwm-regulator";
-		pwms = <&pwm0_4ch_0 0 5000 1>;
+		compatible = "regulator-fixed";
 		regulator-name = "vdd_arm";
-		regulator-min-microvolt = <717000>;
-		regulator-max-microvolt = <1102000>;
-		regulator-init-microvolt = <950000>;
+		regulator-min-microvolt = <950000>;
+		regulator-max-microvolt = <950000>;
 		regulator-always-on;
 		regulator-boot-on;
-		regulator-settling-time-up-us = <250>;
-		pwm-supply = <&vcc_sys>;
+		vin-supply = <&vcc_sys>;
 	};
 };
 
@@ -112,10 +106,26 @@
 };
 
 &pwm0_4ch_0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm0m0_ch0_pins>;
 	status = "okay";
 };
 
 &pwm0_4ch_3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm0m0_ch3_pins>;
+	status = "okay";
+};
+
+&pwm1_4ch_0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm1m0_ch0_pins>;
+	status = "okay";
+};
+
+&pwm2_4ch_3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm2m0_ch3_pins>;
 	status = "okay";
 };
 
@@ -204,5 +214,3 @@
 		spi-tx-bus-width = <1>; // cannot quad write
 	};
 };
-
-
