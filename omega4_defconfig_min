@@ -1,0 +1,6 @@
+CONFIG_TARGET_rockchip=y
+CONFIG_TARGET_rockchip_cortexa7=y
+CONFIG_TARGET_rockchip_cortexa7_DEVICE_onion_omega4-evb=y
+CONFIG_DEVEL=y
+CONFIG_EXTERNAL_KERNEL_TREE=""
+CONFIG_KERNEL_DEVMEM=y
