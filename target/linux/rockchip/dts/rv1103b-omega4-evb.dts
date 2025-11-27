@@ -96,33 +96,36 @@
 // is on the omega4 module itself, not defined here
 
 /**********SDMMC**********/
-&sdmmc0 {
-	no-sdio;
-	no-mmc;
-	bus-width = <4>;
-	cap-mmc-highspeed;
-	cap-sd-highspeed;
-	disable-wp;
-	sd-uhs-sdr104;
-	vmmc-supply = <&vcc3v3_sd>;
-	vqmmc-supply = <&vccio_sd>;
-	status = "okay";
-};
 
-&sdmmc1 {
-	max-frequency = <150000000>;
-	no-sd;
-	no-mmc;
-	bus-width = <4>;
-	cap-sd-highspeed;
-	cap-sdio-irq;
-	keep-power-in-suspend;
-	mmc-pwrseq = <&sdio_pwrseq>;
-	non-removable;
-	pinctrl-names = "default";
-	pinctrl-0 = <&sdmmc1_cmd_pins &sdmmc1_clk_pins &sdmmc1_bus4_pins>;
-	status = "disabled";
-};
+// EVB P2-02 does not have SD-Card
+// &sdmmc0 {
+// 	no-sdio;
+// 	no-mmc;
+// 	bus-width = <4>;
+// 	cap-mmc-highspeed;
+// 	cap-sd-highspeed;
+// 	disable-wp;
+// 	sd-uhs-sdr104;
+// 	vmmc-supply = <&vcc3v3_sd>;
+// 	vqmmc-supply = <&vccio_sd>;
+// 	status = "okay";
+// };
+
+// SDIO1/SDMMC1 is connected to the WiFi module -> this belongs into rv1103b-omega4.dtsi
+// &sdmmc1 {
+// 	max-frequency = <150000000>;
+// 	no-sd;
+// 	no-mmc;
+// 	bus-width = <4>;
+// 	cap-sd-highspeed;
+// 	cap-sdio-irq;
+// 	keep-power-in-suspend;
+// 	mmc-pwrseq = <&sdio_pwrseq>;
+// 	non-removable;
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&sdmmc1_cmd_pins &sdmmc1_clk_pins &sdmmc1_bus4_pins>;
+// 	status = "disabled";
+// };
 
 
 /**********ETH**********/

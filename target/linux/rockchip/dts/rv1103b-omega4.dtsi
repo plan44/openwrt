@@ -211,4 +211,20 @@
 	};
 };
 
+// SDIO1/SDMMC1 is connected to the on-board WiFi/BT module -> enable this once WiFi is ready
+// &sdmmc1 {
+// 	max-frequency = <150000000>;
+// 	no-sd;
+// 	no-mmc;
+// 	bus-width = <4>;
+// 	cap-sd-highspeed;
+// 	cap-sdio-irq;
+// 	keep-power-in-suspend;
+// 	mmc-pwrseq = <&sdio_pwrseq>;
+// 	non-removable;
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&sdmmc1_cmd_pins &sdmmc1_clk_pins &sdmmc1_bus4_pins>;
+// 	status = "disabled";
+// };
+
 
