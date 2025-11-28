@@ -127,28 +127,32 @@
 // 	pinctrl-0 = <&uart0m1_xfer>;
 // };
 
+// for now, enable this to always the option for LED output on J11 or RS485 on J14
 &uart1 {
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart1m1_xfer>;
 };
 
+// SoC debug UART
 &uart2 {
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart2m1_xfer>;
 };
 
-&uart3 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart3m1_xfer>;
-};
-&uart4 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart4m1_xfer>;
-};
+
+// other UARTs must be enabled via overlays when needed
+// &uart3 {
+// 	status = "okay";
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&uart3m1_xfer>;
+// };
+// &uart4 {
+// 	status = "okay";
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&uart4m1_xfer>;
+// };
 
 
 // /**********PWM**********/
@@ -181,18 +185,21 @@
 //	pinctrl-names = "active";
 //	pinctrl-0 = <&pwm4m2_pins>;
 //};
-&pwm5 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm5m1_pins>;
-	// pinctrl-0 = <&pwm5m2_pins>;
-};
-&pwm6 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm6m1_pins>;
-	// pinctrl-0 = <&pwm6m2_pins>;
-};
+
+// when needed, enable via overlays
+// &pwm5 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm5m1_pins>;
+// 	// pinctrl-0 = <&pwm5m2_pins>;
+// };
+// &pwm6 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm6m1_pins>;
+// 	// pinctrl-0 = <&pwm6m2_pins>;
+// };
+
 //&pwm7 {
 //	status = "okay";
 //	pinctrl-names = "active";
@@ -211,20 +218,21 @@
 //	pinctrl-0 = <&pwm9m0_pins>;
 //};
 
-&pwm10 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm10m1_pins>;
-	// pinctrl-0 = <&pwm10m2_pins>;
-	// pinctrl-0 = <&pwm10m0_pins>;
-};
-&pwm11 {
-	status = "okay";
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm11m1_pins>;
-	// pinctrl-0 = <&pwm11m2_pins>;
-	// pinctrl-0 = <&pwm11m0_pins>;
-};
+// possibly enable via overlays
+// &pwm10 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm10m1_pins>; // LED_EN
+// 	// pinctrl-0 = <&pwm10m2_pins>; // Button
+// 	// pinctrl-0 = <&pwm10m0_pins>; // not available
+// };
+// &pwm11 {
+// 	status = "okay";
+// 	pinctrl-names = "active";
+// 	pinctrl-0 = <&pwm11m1_pins>; // N.C. in P44-xxm-GW
+// 	// pinctrl-0 = <&pwm11m2_pins>; // UEXT
+// 	// pinctrl-0 = <&pwm11m0_pins>; // UART1_RX not exposed
+// };
 
 
 &rtc {
