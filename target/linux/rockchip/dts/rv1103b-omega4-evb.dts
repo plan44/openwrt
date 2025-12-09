@@ -107,15 +107,7 @@
 
 /**********SDMMC**********/
 &sdmmc0 {
-	no-sdio;
-	no-mmc;
-	bus-width = <4>;
-	cap-mmc-highspeed;
-	cap-sd-highspeed;
-	disable-wp;
-	sd-uhs-sdr104;
-	vmmc-supply = <&vcc3v3_sd>;
-	vqmmc-supply = <&vccio_sd>;
+
 	status = "okay";
 };
 
@@ -280,5 +272,4 @@
 &rtc {
 	status = "okay";
 };
-
 
