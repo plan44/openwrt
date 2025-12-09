@@ -15,6 +15,23 @@
 	model = "Omega4 EVB P2";
 	compatible = "onion,rv1103b-omega4-evb", "rockchip,rv1103b";
 
+	aliases {
+		led-boot = &sys_led;
+		led-failsafe = &sys_led;
+		led-running = &sys_led;
+		led-upgrade = &sys_led;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		sys_led: sys-led {
+			gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+			label = "sys";
+			default-state = "on";
+		};
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default";
@@ -272,4 +289,3 @@
 &rtc {
 	status = "okay";
 };
-
