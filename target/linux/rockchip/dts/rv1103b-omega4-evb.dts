@@ -32,89 +32,16 @@
 		};
 	};
 
-	sdio_pwrseq: sdio-pwrseq {
-		compatible = "mmc-pwrseq-simple";
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_pwr_wf>;
-		post-power-on-delay-ms = <300>;
-
-		/* real Wi-Fi power/reset: PWR_WF = GPIO0_A0 */
-		reset-gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_LOW>;
-	};
-
-
-	// wireless_wlan: wireless-wlan {
-	// 	compatible = "wlan-platdata";
-	// 	wifi_chip_type = "aic8800";
-	// 	pinctrl-names = "default";
-	// 	pinctrl-0 = <&wifi_host_wake_irq>;
-	// 	WIFI,host_wake_irq = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
-	// 	status = "okay";
+	// vcc3v3_sd: vcc3v3-sd {
+	// 	compatible = "regulator-fixed";
+	// 	regulator-name = "vcc3v3_sd";
+	// 	regulator-min-microvolt = <3300000>;
+	// 	regulator-max-microvolt = <3300000>;
+	// 	regulator-boot-on;
+	// 	regulator-always-on;
+	// 	vin-supply = <&vcc_3v3>;
 	// };
 
-	vcc3v3_sd: vcc3v3-sd {
-		compatible = "regulator-fixed";
-		gpio = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
-		regulator-name = "vcc3v3_sd";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&sdmmc_pwren>;
-		vin-supply = <&vcc_3v3>;
-	};
-
-	vccio_sd: vccio-sd {
-		compatible = "regulator-gpio";
-		regulator-name = "vccio_sd";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
-		gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
-		states = <3300000 1
-			  1800000 0>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&sdmmc_volt>;
-	};
-
-// That's the Rockchip EVB module, Omega4 has another module
-// 	wireless_wlan: wireless-wlan {
-// 		compatible = "wlan-platdata";
-// 		wifi_chip_type = "rtl8189fs";
-// 		pinctrl-names = "default";
-// 		pinctrl-0 = <&wifi_host_wake_irq>;
-// 		WIFI,host_wake_irq = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
-// 		status = "okay";
-// 	};
-};
-
-&pinctrl {
-	sdmmc {
-		/omit-if-no-ref/
-		sdmmc_pwren: sdmmc-pwren {
-			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		/omit-if-no-ref/
-		sdmmc_volt: sdmmc-volt {
-			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
-// That's for the Rockchip EVB module, Omega4 has another module
-// 	wireless-wlan {
-// 		wifi_host_wake_irq: wifi-host-wake-irq {
-// 			rockchip,pins = <2 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
-// 		};
-// 	};
-	sdio-pwrseq {
-		wifi_pwr_wf: wifi-pwr-wf {
-			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-	wlan {
-		wifi_host_wake_irq: wifi-host-wake-irq {
-			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
 };
 
 
@@ -136,8 +63,8 @@
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
-	mmc-pwrseq = <&sdio_pwrseq>;
-	vmmc-supply = <&vcc3v3_sd>;
+	// mmc-pwrseq = <&sdio_pwrseq>;
+	// vmmc-supply = <&vcc3v3_sd>;
 	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1_cmd_pins &sdmmc1_clk_pins &sdmmc1_bus4_pins>;
@@ -194,96 +121,6 @@
  	pinctrl-names = "default";
  	pinctrl-0 = <&uart0m0_xfer_pins>;
 };
-
-
-// UART1 M1 is available, no predefined use
-// &uart1 {
-// 	status = "okay";
-// 	pinctrl-names = "default";
-// 	pinctrl-0 = <&uart1m1_xfer_pins>;
-// };
-
-// UART2 M1 is connected to WiFi/BT, not available on the EVB
-
-
-
-/**********PWM**********/
-
-// Note: pwmX are aliases to pwmY_4ch_Z (Y=0..2, Z=0..3) => total of 12 PWMs
-
-
-// %%% note: pinctl names below are probably wrong, these must be more like: pwm0m0_ch0_pins
-
-// &pwm0 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm0m0_pins>;
-// 	// pinctrl-0 = <&pwm0m1_pins>;
-// };
-// &pwm1 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm1m0_pins>;
-// 	// pinctrl-0 = <&pwm1m1_pins>;
-// };
-// &pwm2 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm2m2_pins>;
-// };
-// &pwm3 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm3m2_pins>;
-// };
-// &pwm4 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm4m2_pins>;
-// };
-// &pwm5 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm5m1_pins>;
-// 	// pinctrl-0 = <&pwm5m2_pins>;
-// };
-// &pwm6 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm6m1_pins>;
-// 	// pinctrl-0 = <&pwm6m2_pins>;
-// };
-// &pwm7 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm7m2_pins>;
-// };
-// &pwm8 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	// pinctrl-0 = <&pwm8m1_pins>;
-// 	pinctrl-0 = <&pwm8m0_pins>;
-// };
-// &pwm9 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	// pinctrl-0 = <&pwm9m1_pins>;
-// 	pinctrl-0 = <&pwm9m0_pins>;
-// };
-// &pwm10 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm10m1_pins>;
-// 	// pinctrl-0 = <&pwm10m2_pins>;
-// 	// pinctrl-0 = <&pwm10m0_pins>;
-// };
-// &pwm11 {
-// 	status = "okay";
-// 	pinctrl-names = "active";
-// 	pinctrl-0 = <&pwm11m1_pins>;
-// 	// pinctrl-0 = <&pwm11m2_pins>;
-// 	// pinctrl-0 = <&pwm11m0_pins>;
-// };
 
 
 &rtc {

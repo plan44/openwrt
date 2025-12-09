@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# Ensure wwan is treated as WAN and allow SSH on port 22 from that zone
+wan_zone="$(uci -q show firewall | sed -n \"s/\\(firewall\\.[^.]*\\).name='wan'/\\1/p\" | head -n1)"
+
+if [ -n "$wan_zone" ]; then
+	# Add wwan to the WAN zone if not already present
+	if ! uci -q get "$wan_zone.network" 2>/dev/null | tr ' ' '\n' | grep -qx wwan; then
+		uci -q add_list "$wan_zone.network=wwan"
+	fi
+fi
+
+# Add SSH allow rule once
+if ! uci -q show firewall | grep -q "Allow-SSH-WWAN"; then
+	rule="$(uci -q add firewall rule)"
+	uci -q set firewall."$rule".name='Allow-SSH-WWAN'
+	uci -q set firewall."$rule".src='wan'
+	uci -q set firewall."$rule".proto='tcp'
+	uci -q set firewall."$rule".dest_port='22'
+	uci -q set firewall."$rule".target='ACCEPT'
+fi
+
+uci -q commit firewall
+
+exit 0
