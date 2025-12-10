@@ -81,6 +81,32 @@
 	};
 };
 
+
+/* Omega4 module specific (and unalterable) pin use */
+
+&gpio0 {
+  gpio-line-names =
+    "Wifi_PWR", "A1_d", "A2_d", "Host_wake_Wifi", "Host_wake_BT", "A5_d", "A6_u";
+};
+
+&gpio1 {
+  gpio-line-names =
+    "FSPI_D3", "FSPI_D0_BOOT", "FSPI_D1", "FSPI_D2", "FSPI_CLK", "FSPI_CMD", "A6_u", "A7_d",
+    "B0_d", "B1_d", "B2_d", "B3_d", "B4_d", "B5_d", "B6_d", "B7_d",
+    "C0_d", "C1_u", "C2_u", "C3_u", "C4_u", "C5_u", "C6_u", "",
+    "D0_u", "D1_u", "D2_u", "D3_u", "D4_u", "D5_u";
+};
+
+&gpio2 {
+  gpio-line-names =
+    "Wifi_D1", "Wifi_D0", "Wifi_CLK", "Wifi_CMD", "Wifi_D3", "Wifi_D2", "Wifi_wake_host", "BT_wake_host",
+    "BT_HCI_TX", "BT_HCI_RX", "BT_HCI_RTS", "BT_HCI_CTS";
+};
+
+
+/* default enables/disables */
+
+
 &acodec {
 	status = "okay";
 };

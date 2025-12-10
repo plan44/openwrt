@@ -1508,6 +1508,8 @@
 			#interrupt-cells = <2>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			gpio-line-names =
+        "A0_z", "A1_d", "A2_d", "A3_u", "A4_d", "A5_d", "A6_d";
 		};
 
 		gpio1: gpio@ff530000 {
@@ -1523,6 +1525,11 @@
 			#interrupt-cells = <2>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			gpio-line-names =
+        "A0_d", "A1_d", "A2_d", "A3_d", "A4_d", "",     "",     "",
+        "B0_d", "B1_d", "B2_d", "B3_d", ""    , "",     "",     "",
+        "C0_d", "C1_d", "C2_d", "C3_d", "C4_d", "C5_d", "C6_d", "C7_d",
+        "D0_d", "D1_d", "D2_d", "D3_d";
 		};
 
 		gpio2: gpio@ff540000 {
@@ -1538,6 +1545,9 @@
 			#interrupt-cells = <2>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			gpio-line-names =
+        "A0_d", "A1_d", "A2_d", "A3_d", "A4_d", "A5_d", "A6_d", "A7_d",
+        "B0_d", "B1_d";
 		};
 
 		gpio3: gpio@ff550000 {
@@ -1553,6 +1563,11 @@
 			#interrupt-cells = <2>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			gpio-line-names =
+        "",     "A1_u", "A2_u", "A3_u", "A4_d", "A5_u", "A6_u", "A7_u",
+        "B0_d", "B1_d", "B2_d", "B3_d", "B4_d", "B5_d", "B6_d", "B7_d",
+        "C0_d", "C1_d", "C2_d", "C3_d", "C4_d", "C5_d", "C6_d", "C7_d",
+        "D0_d", "D1_d", "D2_d", "D3_d";
 		};
 
 		gpio4: gpio@ff560000 {
@@ -1568,6 +1583,10 @@
 			#interrupt-cells = <2>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			gpio-line-names =
+        "A0_u", "A1_u", "A2_u", "A3_u", "A4_d", "A5_u", "A6_u", "A7_u",
+        "B0_u", "B1_d", "",     "",     "",     "",     "",     "",
+        "C0_z", "C1_z";
 		};
 	};
 };

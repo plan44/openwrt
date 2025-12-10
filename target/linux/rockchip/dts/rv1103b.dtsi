@@ -1431,6 +1431,8 @@
 			gpio-ranges = <&pinctrl 0 0 32>;
 			interrupt-controller;
 			#interrupt-cells = <2>;
+			gpio-line-names =
+        "A0_Z", "A1_d", "A2_d", "A3_u", "A4_d", "A5_d", "A6_u";
 		};
 
 		gpio1: gpio@20d80000 {
@@ -1443,6 +1445,11 @@
 			gpio-ranges = <&pinctrl 0 32 32>;
 			interrupt-controller;
 			#interrupt-cells = <2>;
+			gpio-line-names =
+        "A0_u", "A1_u", "A2_u", "A3_u", "A4_d", "A5_u", "A6_u", "A7_d",
+        "B0_d", "B1_d", "B2_d", "B3_d", "B4_d", "B5_d", "B6_d", "B7_d",
+        "C0_d", "C1_u", "C2_u", "C3_u", "C4_u", "C5_u", "C6_u", "",
+        "D0_u", "D1_u", "D2_u", "D3_u", "D4_u", "D5_u";
 		};
 
 		gpio2: gpio@20840000 {
@@ -1455,6 +1462,9 @@
 			gpio-ranges = <&pinctrl 0 64 32>;
 			interrupt-controller;
 			#interrupt-cells = <2>;
+			gpio-line-names =
+        "A0_d", "A1_d", "A2_d", "A3_d", "A4_d", "A5_d", "A6_d", "A7_d",
+        "B0_d", "B1_d", "B2_d", "B3_d";
 		};
 	};
 };
