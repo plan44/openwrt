@@ -89,19 +89,6 @@
 	wifi: wifi {
 		compatible = "wlan-platdata";
 		wifi_chip_type = "aic8800";
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_wake_gpio>;
-		WIFI,poweren_gpio = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>; /* host -> WiFi wake/enable */
-		status = "okay";
-	};
-
-	bluetooth: bluetooth {
-		compatible = "aic,aic8800-btlpm";
-		pinctrl-names = "default";
-		pinctrl-0 = <&bt_host_wake_irq &bt_wake_gpio>;
-		bt_hostwake = <&gpio2 RK_PA7 GPIO_ACTIVE_HIGH>; /* BT -> host wake (required by driver) */
-		bt_wake = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;     /* host -> BT wake */
-		uart_index = <2>;
 		status = "okay";
 	};
 };
@@ -219,32 +206,15 @@
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-
-	wifi {
-		wifi_wake_gpio: wifi-wake-gpio {
-			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
-	bluetooth {
-		bt_host_wake_irq: bt-host-wake-irq {
-			rockchip,pins = <2 RK_PA7 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-		bt_wake_gpio: bt-wake-gpio {
-			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
 };
 
 
 
 /* Omega4 module specific HW use */
 
-// UART2 M1 is connected to WiFi/BT, not available on the EVB
+// UART2 previously routed to BT; no longer used when BT runs over SDIO
 &uart2 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart2m1_xfer_pins &uart2m1_ctsn_pins &uart2m1_rtsn_pins>;
+	status = "disabled";
 };
 
 // FSPI0 (aliased as SPI1) is connected to on-board W25N02KVZEIR QSPI NAND flash
