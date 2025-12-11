@@ -1,0 +1,99 @@
+#!/bin/sh
+
+CONF="/etc/bluetooth/main.conf"
+INIT="/etc/init.d/bluetoothd"
+CONFIG="/etc/config/bluetooth"
+
+HOSTNAME="$(uci -q get system.@system[0].hostname)"
+[ -n "$HOSTNAME" ] || HOSTNAME="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+HOSTNAME="${HOSTNAME:-Omega4}"
+
+ensure_uci_defaults() {
+	[ -f "$CONFIG" ] || touch "$CONFIG"
+
+	uci -q get bluetooth.general >/dev/null || uci -q set bluetooth.general=bluetooth
+	uci -q get bluetooth.general.name >/dev/null || uci -q set bluetooth.general.name='Omega4'
+	uci -q get bluetooth.general.alias >/dev/null || uci -q set bluetooth.general.alias="$HOSTNAME"
+	uci -q get bluetooth.general.controllermode >/dev/null || uci -q set bluetooth.general.controllermode='le'
+
+	uci -q commit bluetooth
+}
+
+# Update a key in the [General] section of main.conf while keeping other
+# content intact. If the key already exists (even commented), replace it;
+# otherwise insert it right after the [General] header.
+apply_general_setting() {
+	local key="$1"
+	local value="$2"
+	local file="$3"
+	local tmp
+
+	[ -f "$file" ] || return 0
+	tmp="$(mktemp)"
+	awk -v key="$key" -v value="$value" '
+	BEGIN {
+		pattern="^[ \t#]*"key"[ \t]*=";
+		added=0;
+	}
+	/^\[General\]/ {
+		print;
+		if (!added) {
+			print key " = " value;
+			added=1;
+			next;
+		}
+	}
+	$0 ~ pattern {
+		if (!added) {
+			print key " = " value;
+			added=1;
+		}
+		next;
+	}
+	{
+		print;
+	}
+	END {
+		if (!added)
+			print key " = " value;
+	}
+	' "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
+sync_main_conf() {
+	local name alias controller_mode
+
+	name="$(uci -q get bluetooth.general.name)"
+	[ -n "$name" ] || name='Omega4'
+
+	alias="$(uci -q get bluetooth.general.alias)"
+	[ -n "$alias" ] || alias="$HOSTNAME"
+	[ -n "$alias" ] || alias="$name"
+
+	controller_mode="$(uci -q get bluetooth.general.controllermode)"
+	[ -n "$controller_mode" ] || controller_mode='le'
+
+	apply_general_setting "Name" "$name" "$CONF"
+	apply_general_setting "Alias" "$alias" "$CONF"
+	apply_general_setting "ControllerMode" "$controller_mode" "$CONF"
+}
+
+patch_init() {
+	[ -f "$INIT" ] || return 0
+	if grep -q 'procd_set_param command "$PROG" -n' "$INIT"; then
+		sed -i 's/procd_set_param command "$PROG" -n/procd_set_param command "$PROG" -E -n/' "$INIT"
+	fi
+}
+
+enable_bluetoothd() {
+	[ -x "$INIT" ] || return 0
+	"$INIT" enable
+	"$INIT" start >/dev/null 2>&1
+}
+
+ensure_uci_defaults
+sync_main_conf
+patch_init
+enable_bluetoothd
+
+exit 0
