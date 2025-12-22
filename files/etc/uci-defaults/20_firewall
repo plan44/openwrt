@@ -13,6 +13,9 @@ uci -q set firewall."$rule".dest_port='22'
 uci -q set firewall."$rule".target='ACCEPT'
 
 
+# Add wlan to the LAN zone
+uci -q add_list "lan.network=wlan"
+
 uci -q commit firewall
 
 exit 0
