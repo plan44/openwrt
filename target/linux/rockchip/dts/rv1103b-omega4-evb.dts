@@ -55,22 +55,6 @@
 	status = "okay";
 };
 
-&sdmmc1 {
-	max-frequency = <150000000>;
-	no-sd;
-	no-mmc;
-	bus-width = <4>;
-	cap-sd-highspeed;
-	cap-sdio-irq;
-	keep-power-in-suspend;
-	// mmc-pwrseq = <&sdio_pwrseq>;
-	// vmmc-supply = <&vcc3v3_sd>;
-	non-removable;
-	pinctrl-names = "default";
-	pinctrl-0 = <&sdmmc1_cmd_pins &sdmmc1_clk_pins &sdmmc1_bus4_pins>;
-	status = "okay";
-};
-
 
 /**********ETH**********/
 &gmac {
