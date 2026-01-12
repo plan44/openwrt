@@ -62,9 +62,23 @@
 };
 
 /**********USB**********/
+&u2phy {
+	status = "okay";
+};
+
+&u2phy_otg {
+	rockchip,vbus-always-on;
+	status = "okay";
+};
+
+&usbdrd {
+	status = "okay";
+};
+
 &usbdrd_dwc3 {
 	status = "okay";
-	dr_mode = "peripheral";
+	dr_mode = "host";
+	/delete-property/ extcon;
 };
 
 /**********I2C**********/
