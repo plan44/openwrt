@@ -95,8 +95,6 @@
 /**********SPI**********/
 &spi0 {
 	status = "okay";
-	/delete-property/ dmas;
-	/delete-property/ dma-names;
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0m0_clk_pins &spi0m0_cs0_pins>;
 	spidev@0 {
