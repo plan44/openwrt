@@ -10,6 +10,7 @@
 #include "rv1103b.dtsi"
 #include "rv1103b-pinctrl.dtsi"
 #include "rv1103b-omega4.dtsi"
+#include "rv1103b-omega4-cam.dtsi"
 
 / {
 	model = "Omega4 EVB P2";
