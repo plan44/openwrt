@@ -11,6 +11,61 @@
 		bootargs = "earlycon=uart8250,mmio32,0x20540000 console=ttyS0,115200";
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		hpmcu_rtos: hpmcu-rtos@1000000 {
+			reg = <0x01000000 0x40000>;
+			no-map;
+		};
+	};
+
+	sgrf: syscon@20250000 {
+		compatible = "rockchip,rv1103b-sgrf", "syscon";
+		reg = <0x20250000 0x1000>;
+	};
+
+	hpmcu_loader: hpmcu-loader {
+		compatible = "onion,omega4-hpmcu-loader";
+		memory-region = <&hpmcu_rtos>;
+		rockchip,ioc = <&ioc>;
+		rockchip,grf = <&grf>;
+		rockchip,sgrf = <&sgrf>;
+		rockchip,program-grf-map;
+		entry-addr = <0x01000000>;
+		heartbeat-offset = <0x804>;
+		reg = <0x20250080 0x4>, <0x20150218 0x4>;
+		reg-names = "boot-addr", "cache-status";
+		resets = <&cru SRST_RESETN_HPMCU_FULL_CLUSTER>,
+			 <&cru SRST_RESETN_HPMCU_PWUP>,
+			 <&cru SRST_RESETN_HPMCU_ONLY_CORE>;
+		reset-names = "cluster", "pwup", "core";
+		clocks = <&cru HCLK_HPMCU>,
+			 <&cru CLK_HPMCU>,
+			 <&cru PCLK_HPMCU_INTMUX>,
+			 <&cru PCLK_HPMCU_MAILBOX>,
+			 <&cru PCLK_WDT_HPMCU>,
+			 <&cru TCLK_WDT_HPMCU>,
+			 <&cru HCLK_CACHE>,
+			 <&cru ACLK_SYS_SRAM>;
+		clock-names = "hclk", "core", "intmux", "pclk-mailbox",
+			      "pclk-wdt", "tclk-wdt", "hclk-cache", "aclk-sram";
+		firmware-name = "omega4/rv1103b-hpmcu-bare.bin";
+		boot-offset = <0x0>;
+		auto-boot;
+		status = "okay";
+	};
+
+	hpmcu_mailbox: hpmcu-mailbox {
+		compatible = "onion,omega4-hpmcu-mailbox";
+		mboxes = <&hpmcu_mbox0 0>;
+		mbox-names = "hpmcu";
+		auto-ping;
+		status = "okay";
+	};
+
 	acodec_sound: acodec-sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "rv1103b-acodec";
@@ -94,6 +149,10 @@
 };
 
 &acodec {
+	status = "okay";
+};
+
+&hpmcu_mbox0 {
 	status = "okay";
 };
 
