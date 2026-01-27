@@ -33,6 +33,12 @@
 		rockchip,ioc = <&ioc>;
 		rockchip,grf = <&grf>;
 		rockchip,sgrf = <&sgrf>;
+		rockchip,cache-peri-start = <0x20000000>;
+		rockchip,cache-peri-end = <0x210fffff>;
+		rockchip,cache-misc = <0x00080000>;
+		rockchip,use-sip;
+		rockchip,sip-code-addr = <0x01000000>;
+		rockchip,sip-sram-addr = <0x01000000>;
 		rockchip,program-grf-map;
 		entry-addr = <0x01000000>;
 		heartbeat-offset = <0x804>;
