@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Once NTP reports a valid stratum, persist the synchronized system time
+# into the hardware RTC so time survives hard power cuts.
+[ "$ACTION" = "stratum" ] || exit 0
+
+RTC_DEV=/dev/rtc0
+HWCLOCK=/sbin/hwclock
+SYNC_STAMP=/tmp/.rtc-synced-from-ntp
+
+[ -e "$RTC_DEV" ] || exit 0
+[ -x "$HWCLOCK" ] || exit 0
+[ -e "$SYNC_STAMP" ] && exit 0
+
+"$HWCLOCK" -w -u -f "$RTC_DEV" || exit 0
+date -u +%Y-%m-%dT%H:%M:%SZ > "$SYNC_STAMP"
+logger -t rtc-sync "saved NTP-synced system time to $RTC_DEV"
