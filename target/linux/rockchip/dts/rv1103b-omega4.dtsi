@@ -280,12 +280,13 @@
 
 /* Omega4 module specific HW use */
 &sdmmc1 {
-	max-frequency = <25000000>;
+	max-frequency = <45000000>;
 	supports-sdio;
 	bus-width = <4>;
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
+	rockchip,default-sample-phase = <270>;
 	
 	non-removable;
 	no-1-8-v;
