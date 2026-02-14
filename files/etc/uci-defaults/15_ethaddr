@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Derive Ethernet MAC address from WiFi MAC (WiFi MAC + 2) and persist
+# it in the U-Boot environment. This only runs once on first boot.
+#
+# The WiFi MAC is burned into the AIC8800D80 hardware and is stable
+# across firmware reflashes. The derived ethaddr is stored in the
+# U-Boot env partition (mtd0) which is not overwritten during normal
+# firmware updates, so it persists.
+#
+
+. /lib/functions/system.sh
+
+# Skip if ethaddr is already set in U-Boot env
+[ -n "$(fw_printenv -n ethaddr 2>/dev/null)" ] && exit 0
+
+# Wait for wlan0 to appear (WiFi driver may take a moment to load)
+tries=0
+while [ ! -e /sys/class/net/wlan0 ] && [ $tries -lt 30 ]; do
+	sleep 1
+	tries=$((tries + 1))
+done
+
+wifi_mac=$(cat /sys/class/net/wlan0/address 2>/dev/null)
+[ -z "$wifi_mac" ] && {
+	echo "15_ethaddr: wlan0 not found, cannot derive ethaddr" >&2
+	exit 1
+}
+
+eth_mac=$(macaddr_add "$wifi_mac" 2)
+[ -z "$eth_mac" ] && {
+	echo "15_ethaddr: failed to compute ethaddr from $wifi_mac" >&2
+	exit 1
+}
+
+fw_setenv ethaddr "$eth_mac" || {
+	echo "15_ethaddr: fw_setenv failed" >&2
+	exit 1
+}
+
+echo "15_ethaddr: set ethaddr=$eth_mac (from wifi_mac=$wifi_mac)"
+
+exit 0

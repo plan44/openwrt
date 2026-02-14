@@ -1,0 +1,23 @@
+#
+# Copyright (C) 2025 Onion Corporation
+#
+[ -e /etc/config/ubootenv ] && exit 0
+
+touch /etc/config/ubootenv
+
+. /lib/uboot-envtools.sh
+. /lib/functions.sh
+
+board=$(board_name)
+
+case "$board" in
+onion,rv1103b-omega4-evb)
+	idx="$(find_mtd_index env)"
+	[ -n "$idx" ] && ubootenv_add_uci_config "/dev/mtd$idx" "0x0" "0x40000" "0x20000"
+	;;
+esac
+
+config_load ubootenv
+config_foreach ubootenv_add_app_config
+
+exit 0

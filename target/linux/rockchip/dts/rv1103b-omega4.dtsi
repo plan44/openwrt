@@ -173,6 +173,8 @@
 
 &gmac {
 	status = "okay";
+	nvmem-cells = <&macphy_bgs>, <&macaddr_env_ethaddr 0>;
+	nvmem-cell-names = "bgs", "mac-address";
 };
 
 &mpp_srv {
@@ -323,8 +325,13 @@
 			#size-cells = <1>;
 
 			partition@0 {
+				compatible = "u-boot,env";
 				label = "env";
 				reg = <0x00000000 0x00040000>;
+
+				macaddr_env_ethaddr: ethaddr {
+					#nvmem-cell-cells = <1>;
+				};
 			};
 
 			partition@40000 {
