@@ -96,6 +96,24 @@ endef
 TARGET_DEVICES += onion_omega4-evb
 
 
+define Device/plan44_p44-xx-omega4
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := plan44 omega4 baseboard
+  # note: SUPPORTED_DEVICES is not honoured by nand.sh's nand_do_platform_check(), so only BOARD_NAME is relevant
+  SUPPORTED_DEVICES := onion,rv1103b-omega4-evb onion,onion_omega4 plan44,rv1103b-p44-base-omega4
+  BOARD_NAME := plan44,rv1103b-p44-base-omega4 # must match compatible in dts (which defines the runtime board name)
+  SOC := rv1103b
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1103b-p44-base-omega4
+  UBOOT_DEVICE_NAME := rv1103b-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
+  IMAGE/boot.img := append-kernel # override Default-nandflash boot.img, otherwise kernel-bin will be wrapped twice
+  IMAGE/env.img := env-rv1103b-nand-img | rockchip-env-img # override Default-nandflash env.img because we need rv1103 specific env layout-
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += plan44_p44-xx-omega4
 
 define Device/plan44_p44-xx-pico-max
   $(Device/Default-nandflash)
@@ -112,6 +130,7 @@ define Device/plan44_p44-xx-pico-max
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += plan44_p44-xx-pico-max
+
 
 define Device/luckfox_pico-max
   $(Device/Default-nandflash)
