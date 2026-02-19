@@ -1432,7 +1432,7 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 			gpio-line-names =
-        "A0_Z", "A1_d", "A2_d", "A3_u", "A4_d", "A5_d", "A6_u";
+        "G0_A0_Z", "G0_A1_d", "G0_A2_d", "G0_A3_u", "G0_A4_d", "G0_A5_d", "G0_A6_u";
 		};
 
 		gpio1: gpio@20d80000 {
@@ -1446,10 +1446,10 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 			gpio-line-names =
-        "A0_u", "A1_u", "A2_u", "A3_u", "A4_d", "A5_u", "A6_u", "A7_d",
-        "B0_d", "B1_d", "B2_d", "B3_d", "B4_d", "B5_d", "B6_d", "B7_d",
-        "C0_d", "C1_u", "C2_u", "C3_u", "C4_u", "C5_u", "C6_u", "",
-        "D0_u", "D1_u", "D2_u", "D3_u", "D4_u", "D5_u";
+        "G1_A0_u", "G1_A1_u", "G1_A2_u", "G1_A3_u", "G1_A4_d", "G1_A5_u", "G1_A6_u", "G1_A7_d",
+        "G1_B0_d", "G1_B1_d", "G1_B2_d", "G1_B3_d", "G1_B4_d", "G1_B5_d", "G1_B6_d", "G1_B7_d",
+        "G1_C0_d", "G1_C1_u", "G1_C2_u", "G1_C3_u", "G1_C4_u", "G1_C5_u", "G1_C6_u", "",
+        "G1_D0_u", "G1_D1_u", "G1_D2_u", "G1_D3_u", "G1_D4_u", "G1_D5_u";
 		};
 
 		gpio2: gpio@20840000 {
@@ -1463,8 +1463,8 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 			gpio-line-names =
-        "A0_d", "A1_d", "A2_d", "A3_d", "A4_d", "A5_d", "A6_d", "A7_d",
-        "B0_d", "B1_d", "B2_d", "B3_d";
+        "G2_A0_d", "G2_A1_d", "G2_A2_d", "G2_A3_d", "G2_A4_d", "G2_A5_d", "G2_A6_d", "G2_A7_d",
+        "G2_B0_d", "G2_B1_d", "G2_B2_d", "G2_B3_d";
 		};
 	};
 };
