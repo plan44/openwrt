@@ -46,6 +46,26 @@
 };
 
 
+
+/* prevent the ethernet driver use the LEDs (we have no LEDs, but need G2_A6/A7 for other purposes!) */
+
+&rmii_phy {
+  //pinctrl-names = "default";
+  //pinctrl-0 = <&eth_led_link_pins &eth_led_spd_pins>;
+  /delete-property/ pinctrl-names;
+  /delete-property/ pinctrl-0;
+};
+
+
+/* re-label GPIOs to represent p44-base-omega4 module specific (and unalterable) pin use */
+
+&gpio0 {
+  gpio-line-names =
+    "G0_A0", "G0_A1", "OLED_RES_N", "Wifi_PWR", "G0_A4", "G0_A5", "G0_A6";
+};
+
+
+
 /**********FLASH**********/
 
 // is on the omega4 module itself, not defined here
