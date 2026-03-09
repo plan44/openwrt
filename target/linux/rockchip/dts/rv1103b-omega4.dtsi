@@ -143,8 +143,8 @@
 		pinctrl-0 = <&wifi_pwr_wf>;
 		post-power-on-delay-ms = <300>;
 
-		/* real Wi-Fi power/reset: PWR_WF = GPIO0_A0 */
-		reset-gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_LOW>;
+		/* real Wi-Fi power/reset: PWR_WF = GPIO0_A3 */
+		reset-gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_LOW>;
 	};
 
 	wifi: wifi {
@@ -273,7 +273,7 @@
 &pinctrl {
 	sdio-pwrseq {
 		wifi_pwr_wf: wifi-pwr-wf {
-			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
@@ -296,7 +296,7 @@
     no-mmc;
     no-sd-uhs;
 
-	// mmc-pwrseq = <&sdio_pwrseq>;
+	mmc-pwrseq = <&sdio_pwrseq>;
 	// vmmc-supply = <&vcc3v3_sd>;
 
 	pinctrl-names = "default";
