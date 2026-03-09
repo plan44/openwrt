@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Derive Ethernet MAC address from WiFi MAC (WiFi MAC + 2) and persist
+# Derive Ethernet MAC address from WiFi MAC (WiFi MAC + 3) and persist
 # it in the U-Boot environment. This only runs once on first boot.
 #
 # The WiFi MAC is burned into the AIC8800D80 hardware and is stable
@@ -27,7 +27,7 @@ wifi_mac=$(cat /sys/class/net/wlan0/address 2>/dev/null)
 	exit 1
 }
 
-eth_mac=$(macaddr_add "$wifi_mac" 2)
+eth_mac=$(macaddr_add "$wifi_mac" 3)
 [ -z "$eth_mac" ] && {
 	echo "15_ethaddr: failed to compute ethaddr from $wifi_mac" >&2
 	exit 1
