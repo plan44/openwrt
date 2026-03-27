@@ -47,9 +47,12 @@ endef
 define Device/Default-sdcard
   $(Device/Default-arm32)
   FILESYSTEMS := squashfs
-  IMAGES := boot.img rootfs.img
+  IMAGES := boot.img rootfs.img env.img idblock.img uboot.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
   IMAGE/boot.img := resource-img | boot-arm-bin
+  IMAGE/env.img := env-rv1106-sd-img | rockchip-env-img
+  IMAGE/idblock.img := rockchip-idblock-img
+  IMAGE/uboot.img := rockchip-uboot-img
 endef
 
 define Device/Default-spiflash
@@ -147,6 +150,19 @@ define Device/luckfox_pico-max
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-max
+
+define Device/luckfox_pico-mini
+  $(Device/Default-sdcard)
+  DEVICE_TITLE := Luckfox Pico Mini
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini
+  SOC := rv1103
+  DEVICE_DTS := rv1103g-luckfox-pico-mini
+  UBOOT_DEVICE_NAME := rv1106-sd
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-mini
 
 define Device/luckfox_pico-86panel-w
   $(Device/Default-emmc)

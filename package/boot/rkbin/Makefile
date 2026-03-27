@@ -9,9 +9,9 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/rockchip-linux/rkbin.git
-PKG_SOURCE_DATE:=2024-02-22
-PKG_SOURCE_VERSION:=a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0
-PKG_MIRROR_HASH:=39f15e5f8fac02026065b6747b355b93f4e06202783ae448c43607763211597c
+PKG_SOURCE_DATE:=2025-06-13
+PKG_SOURCE_VERSION:=74213af1e952c4683d2e35952507133b61394862
+PKG_MIRROR_HASH:=6031a672c66272b3003a2795336f4905058972527e01b881c77b316f5df0132c
 
 PKG_LICENSE_FILES:=LICENSE
 PKG_MAINTAINER:=Tianling Shen <cnsztl@immortalwrt.org>
@@ -63,13 +63,20 @@ define Trusted-Firmware-A/rk3588
   TPL:=rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.16.bin
 endef
 
+define Trusted-Firmware-A/rv1106
+  BUILD_SUBTARGET:=cortexa7
+  ATF:=rv11/rv1106_spl_v1.02.bin
+  TPL:=rv11/rv1106_ddr_924MHz_v1.15.bin
+endef
+
 TFA_TARGETS:= \
 	rk3308 \
 	rk3308-rock-pi-s \
 	rk3566 \
 	rk3568 \
 	rk3568-e25 \
-	rk3588
+	rk3588 \
+	rv1106
 
 ifeq ($(BUILD_VARIANT),rk3308-rock-pi-s)
   TPL_FILE:=rk3308_ddr_589MHz_uart0_m0_v2.07.bin
@@ -111,6 +118,19 @@ define Package/trusted-firmware-a/install
 
 	$(CP) $(PKG_BUILD_DIR)/bin/$(ATF) $(STAGING_DIR_IMAGE)/
 	$(CP) $(PKG_BUILD_DIR)/bin/$(TPL) $(STAGING_DIR_IMAGE)/
+endef
+
+define Package/trusted-firmware-a-rv1106/install
+	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
+	# Stage raw binaries
+	$(CP) $(PKG_BUILD_DIR)/bin/rv11/rv1106_spl_v1.02.bin $(STAGING_DIR_IMAGE)/
+	$(CP) $(PKG_BUILD_DIR)/bin/rv11/rv1106_ddr_924MHz_v1.15.bin $(STAGING_DIR_IMAGE)/
+	# Generate idblock.img using boot_merger with vendor INI
+	chmod +x $(PKG_BUILD_DIR)/tools/boot_merger
+	cd $(PKG_BUILD_DIR) && ./tools/boot_merger RKBOOT/RV1106MINIALL.ini
+	$(CP) $(PKG_BUILD_DIR)/rv1106_idblock_v*.img $(STAGING_DIR_IMAGE)/rv1106-sd-idblock.img
+	# Stage loaderimage for the future uboot-luckfox package
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tools/loaderimage $(STAGING_DIR_IMAGE)/loaderimage
 endef
 
 $(eval $(call BuildPackage/Trusted-Firmware-A))
