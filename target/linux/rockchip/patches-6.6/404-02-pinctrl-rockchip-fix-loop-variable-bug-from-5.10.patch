@@ -1,0 +1,28 @@
+From 1f1b734c8e5e70401a7a57d60b9f4bdab10dd41f Mon Sep 17 00:00:00 2001
+From: Lukas Zeller <luz@plan44.ch>
+Date: Fri, 17 Oct 2025 11:07:26 +0200
+Subject: [PATCH] drivers/pinctrl/pinctrl-rockchip.*: fix from 5.10: bad loop
+ var bug
+
+---
+ drivers/pinctrl/pinctrl-rockchip.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/pinctrl/pinctrl-rockchip.c b/drivers/pinctrl/pinctrl-rockchip.c
+index 283162f7f..8fd45f7af 100644
+--- a/drivers/pinctrl/pinctrl-rockchip.c
++++ b/drivers/pinctrl/pinctrl-rockchip.c
+@@ -5532,8 +5532,8 @@ int rk_iomux_set(int bank, int pin, int mux)
+ 	mutex_lock(&iomux_lock);
+ 	for (i = 0; i < info->ngroups; i++) {
+ 		grp = &info->groups[i];
+-		for (j = 0; j < grp->npins; i++) {
+-			if (grp->pins[i] == (gpio->pin_base + pin)) {
++		for (j = 0; j < grp->npins; j++) {
++			if (grp->pins[j] == (gpio->pin_base + pin)) {
+ 				cfg = grp->data;
+ 				break;
+ 			}
+-- 
+2.53.0
+

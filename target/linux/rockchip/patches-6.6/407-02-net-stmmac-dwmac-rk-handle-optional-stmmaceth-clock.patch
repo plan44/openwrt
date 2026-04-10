@@ -1,0 +1,35 @@
+From 5d09be7af7a5bbc2d74dd0745a811aaae59fad5e Mon Sep 17 00:00:00 2001
+From: Lukas Zeller <luz@plan44.ch>
+Date: Mon, 27 Oct 2025 18:25:47 +0100
+Subject: [PATCH] drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c: ignore
+ missing "stmmaceth" clock when clock is input
+
+- 5.10 driver displayed error but did not exit, so trying that here, too.
+---
+ drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+index c33426eab..327c8aadd 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+@@ -1746,13 +1746,13 @@ static int rk_gmac_clk_init(struct plat_stmmacenet_data *plat)
+ 	/* "stmmaceth" will be enabled by the core */
+ 	bsp_priv->clk_mac = devm_clk_get(dev, "stmmaceth");
+ 	ret = PTR_ERR_OR_ZERO(bsp_priv->clk_mac);
+-	if (ret)
+-		return dev_err_probe(dev, ret, "Cannot get stmmaceth clock\n");
++	if (ret && !bsp_priv->clock_input)
++		return dev_err_probe(dev, ret, "No clock input from PHY and cannot get stmmaceth clock\n");
+ 
+ 	if (bsp_priv->clock_input) {
+ 		dev_info(dev, "clock input from PHY\n");
+ 	} else if (phy_iface == PHY_INTERFACE_MODE_RMII) {
+-		clk_set_rate(bsp_priv->clk_mac, 50000000);
++		if (!ret) clk_set_rate(bsp_priv->clk_mac, 50000000);
+ 	}
+ 
+ 	if (plat->phy_node && bsp_priv->integrated_phy) {
+-- 
+2.53.0
+

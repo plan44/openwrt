@@ -1,0 +1,35 @@
+From: Claude Sonnet 4.6 <noreply@anthropic.com>
+Date: Wed, 9 Apr 2026 00:00:00 +0000
+Subject: [PATCH] drivers/nvmem/rockchip-otp.c: enable legacy OF cell registration
+
+In Linux 6.6+, nvmem_register() only calls nvmem_add_cells_from_legacy_of()
+when config->add_legacy_fixed_of_cells is set. Without this flag, DT
+sub-nodes in the OTP node (cpu-code@2, cpu-version@8, id@a, etc.) are never
+registered as NVMEM cells.
+
+This causes rockchip-cpuinfo to fail with -ENOENT when calling
+nvmem_cell_get(dev, "id"), because nvmem_find_cell_entry_by_node() finds
+no matching cell in nvmem->cells.
+
+Fix by setting add_legacy_fixed_of_cells = true in otp_config so that
+sub-node cells defined in DT (used by cpuinfo, cpu OPP tables, etc.) are
+properly registered.
+
+---
+ drivers/nvmem/rockchip-otp.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/nvmem/rockchip-otp.c b/drivers/nvmem/rockchip-otp.c
+index bf4d5404e..c3a4f6b9e 100644
+--- a/drivers/nvmem/rockchip-otp.c
++++ b/drivers/nvmem/rockchip-otp.c
+@@ -740,6 +740,7 @@ static struct nvmem_config otp_config = {
+ 	.read_only = true,
+ 	.reg_read = rockchip_otp_read,
+ 	.reg_write = rockchip_otp_write,
++	.add_legacy_fixed_of_cells = true,
+ 	.stride = 1,
+ 	.word_size = 1,
+ };
+--
+2.53.0

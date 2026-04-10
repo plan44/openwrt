@@ -1,0 +1,1799 @@
+From aeac30fc6cdc8cf077f04eb310fab7e3de3178a3 Mon Sep 17 00:00:00 2001
+From: Lukas Zeller <luz@plan44.ch>
+Date: Fri, 17 Oct 2025 10:20:02 +0200
+Subject: [PATCH] drivers/clk/rockchip: rv1103b related updates from 5.10
+ kernel
+
+---
+ drivers/clk/rockchip/Kconfig            |   7 +
+ drivers/clk/rockchip/Makefile           |   1 +
+ drivers/clk/rockchip/clk-cpu.c          |   4 +
+ drivers/clk/rockchip/clk-half-divider.c |   2 +-
+ drivers/clk/rockchip/clk-out.c          |   7 +-
+ drivers/clk/rockchip/clk-pll.c          |  10 +-
+ drivers/clk/rockchip/clk-pvtpll.c       | 377 +++++++++++-
+ drivers/clk/rockchip/clk-px30.c         |  46 +-
+ drivers/clk/rockchip/clk-rk3188.c       |  28 +-
+ drivers/clk/rockchip/clk-rk3368.c       |   6 +-
+ drivers/clk/rockchip/clk-rk3399.c       |  17 +-
+ drivers/clk/rockchip/clk-rk3562.c       |   8 -
+ drivers/clk/rockchip/clk-rv1103b.c      | 752 ++++++++++++++++++++++++
+ drivers/clk/rockchip/clk-rv1106.c       |  16 +-
+ 14 files changed, 1176 insertions(+), 105 deletions(-)
+ create mode 100644 drivers/clk/rockchip/clk-rv1103b.c
+
+diff --git a/drivers/clk/rockchip/Kconfig b/drivers/clk/rockchip/Kconfig
+index 2bbbc278b..20ec53034 100644
+--- a/drivers/clk/rockchip/Kconfig
++++ b/drivers/clk/rockchip/Kconfig
+@@ -16,6 +16,13 @@ config CLK_PX30
+ 	help
+ 	  Build the driver for PX30 Clock Driver.
+ 
++config CLK_RV1103B
++	tristate "Rockchip RV1103B clock controller support"
++	depends on CPU_RV1103B || COMPILE_TEST
++	default y
++	help
++	  Build the driver for RV1103B Clock Driver.
++
+ config CLK_RV1106
+ 	tristate "Rockchip RV1106 clock controller support"
+ 	depends on CPU_RV1106 || COMPILE_TEST
+diff --git a/drivers/clk/rockchip/Makefile b/drivers/clk/rockchip/Makefile
+index 16ff4e12d..17d20fd8b 100644
+--- a/drivers/clk/rockchip/Makefile
++++ b/drivers/clk/rockchip/Makefile
+@@ -23,6 +23,7 @@ obj-$(CONFIG_ROCKCHIP_CLK_OUT)  += clk-out.o
+ obj-$(CONFIG_ROCKCHIP_CLK_PVTPLL) += clk-pvtpll.o
+ 
+ obj-$(CONFIG_CLK_PX30)          += clk-px30.o
++obj-$(CONFIG_CLK_RV1103B)	+= clk-rv1103b.o
+ obj-$(CONFIG_CLK_RV1106)        += clk-rv1106.o
+ obj-$(CONFIG_CLK_RV1108)        += clk-rv1108.o
+ obj-$(CONFIG_CLK_RV1126)        += clk-rv1126.o
+diff --git a/drivers/clk/rockchip/clk-cpu.c b/drivers/clk/rockchip/clk-cpu.c
+index 9a9beeb8c..365d4ec30 100644
+--- a/drivers/clk/rockchip/clk-cpu.c
++++ b/drivers/clk/rockchip/clk-cpu.c
+@@ -52,6 +52,10 @@
+ struct rockchip_cpuclk {
+ 	struct clk_hw				hw;
+ 	struct clk_hw				*pll_hw;
++
++	struct clk_mux				cpu_mux;
++	const struct clk_ops			*cpu_mux_ops;
++
+ 	struct clk				*alt_parent;
+ 	void __iomem				*reg_base;
+ 	struct notifier_block			clk_nb;
+diff --git a/drivers/clk/rockchip/clk-half-divider.c b/drivers/clk/rockchip/clk-half-divider.c
+index 9e0d0fc00..b978af08d 100644
+--- a/drivers/clk/rockchip/clk-half-divider.c
++++ b/drivers/clk/rockchip/clk-half-divider.c
+@@ -137,7 +137,7 @@ static const struct clk_ops clk_half_divider_ops = {
+ 	.set_rate = clk_half_divider_set_rate,
+ };
+ 
+-/*
++/**
+  * Register a clock branch.
+  * Most clock branches have a form like
+  *
+diff --git a/drivers/clk/rockchip/clk-out.c b/drivers/clk/rockchip/clk-out.c
+index 22dcd98fb..97177a462 100644
+--- a/drivers/clk/rockchip/clk-out.c
++++ b/drivers/clk/rockchip/clk-out.c
+@@ -23,6 +23,7 @@ static int rockchip_clk_out_probe(struct platform_device *pdev)
+ 	void __iomem *reg;
+ 	u32 shift = 0;
+ 	u8 clk_gate_flags = CLK_GATE_HIWORD_MASK;
++	unsigned long flags = CLK_SET_RATE_PARENT;
+ 	int ret;
+ 
+ 	ret = device_property_read_string(dev, "clock-output-names", &clk_name);
+@@ -36,6 +37,9 @@ static int rockchip_clk_out_probe(struct platform_device *pdev)
+ 	if (device_property_read_bool(dev, "rockchip,bit-set-to-disable"))
+ 		clk_gate_flags |= CLK_GATE_SET_TO_DISABLE;
+ 
++	if (device_property_read_bool(dev, "rockchip,clk-ignore-unused"))
++		flags |= CLK_IGNORE_UNUSED;
++
+ 	ret = of_clk_parent_fill(node, &parent_name, 1);
+ 	if (ret != 1)
+ 		return -EINVAL;
+@@ -50,7 +54,8 @@ static int rockchip_clk_out_probe(struct platform_device *pdev)
+ 
+ 	pm_runtime_enable(dev);
+ 
+-	hw = clk_hw_register_gate(dev, clk_name, parent_name, CLK_SET_RATE_PARENT,
++
++	hw = clk_hw_register_gate(dev, clk_name, parent_name, flags,
+ 				  reg, shift, clk_gate_flags, &clk_out_lock);
+ 	if (IS_ERR(hw)) {
+ 		ret = -EINVAL;
+diff --git a/drivers/clk/rockchip/clk-pll.c b/drivers/clk/rockchip/clk-pll.c
+index a109a5681..558172ad3 100644
+--- a/drivers/clk/rockchip/clk-pll.c
++++ b/drivers/clk/rockchip/clk-pll.c
+@@ -486,7 +486,7 @@ static int rockchip_pll_wait_lock(struct rockchip_clk_pll *pll)
+ 	return ret;
+ }
+ 
+-/*
++/**
+  * PLL used in RK3036
+  */
+ 
+@@ -788,7 +788,7 @@ static const struct clk_ops rockchip_rk3036_pll_clk_ops = {
+ 	.init = rockchip_rk3036_pll_init,
+ };
+ 
+-/*
++/**
+  * PLL used in RK3066, RK3188 and RK3288
+  */
+ 
+@@ -1023,7 +1023,7 @@ static const struct clk_ops rockchip_rk3066_pll_clk_ops = {
+ 	.init = rockchip_rk3066_pll_init,
+ };
+ 
+-/*
++/**
+  * PLL used in RK3399
+  */
+ 
+@@ -1409,9 +1409,6 @@ static unsigned long rockchip_rk3588_pll_recalc_rate(struct clk_hw *hw,
+ 	}
+ 	rate64 = rate64 >> cur.s;
+ 
+-	if (pll->type == pll_rk3588_ddr)
+-		return (unsigned long)rate64 * 2;
+-	else
+ 		return (unsigned long)rate64;
+ }
+ 
+@@ -1848,7 +1845,6 @@ struct clk *rockchip_clk_register_pll(struct rockchip_clk_provider *ctx,
+ #ifdef CONFIG_ROCKCHIP_PLL_RK3588
+ 	case pll_rk3588:
+ 	case pll_rk3588_core:
+-	case pll_rk3588_ddr:
+ 		if (!pll->rate_table)
+ 			init.ops = &rockchip_rk3588_pll_clk_norate_ops;
+ 		else
+diff --git a/drivers/clk/rockchip/clk-pvtpll.c b/drivers/clk/rockchip/clk-pvtpll.c
+index 3fd8598c1..99bf06972 100644
+--- a/drivers/clk/rockchip/clk-pvtpll.c
++++ b/drivers/clk/rockchip/clk-pvtpll.c
+@@ -8,6 +8,7 @@
+ #include <linux/err.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/module.h>
++#include <linux/nvmem-consumer.h>
+ #include <linux/of.h>
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+@@ -18,6 +19,8 @@
+ #include <linux/regulator/consumer.h>
+ #include "clk.h"
+ 
++#define MHz	1000000
++
+ #define RV1103B_PVTPLL_GCK_CFG			0x20
+ #define RV1103B_PVTPLL_GCK_LEN			0x24
+ #define RV1103B_GCK_START			BIT(0)
+@@ -27,6 +30,8 @@
+ #define RV1103B_GCK_RING_LEN_SEL_MASK		0x1ff
+ #define RV1103B_GCK_RING_SEL_OFFSET		10
+ #define RV1103B_GCK_RING_SEL_MASK		0x07
++#define RV1103B_PVTPLL_MAX_LENGTH		0x1ff
++#define RV1103B_PVTPLL_GCK_CNT_AVG		0x54
+ 
+ #define RK3506_GRF_CORE_PVTPLL_CON0_L		0x00
+ #define RK3506_GRF_CORE_PVTPLL_CON0_H		0x04
+@@ -36,6 +41,7 @@
+ #define RK3506_START				BIT(0)
+ #define RK3506_RING_LENGTH_SEL_OFFSET		0
+ #define RK3506_RING_LENGTH_SEL_MASK		0x7f
++#define RK3506_PVTPLL_MAX_LENGTH		0x7f
+ 
+ struct rockchip_clock_pvtpll;
+ 
+@@ -44,17 +50,29 @@ struct pvtpll_table {
+ 	u32 length;
+ 	u32 length_frac;
+ 	u32 ring_sel;
++	u32 volt_sel_thr;
+ };
+ 
+ struct rockchip_clock_pvtpll_info {
+ 	unsigned int table_size;
+ 	struct pvtpll_table *table;
++	unsigned int jm_table_size;
++	struct pvtpll_table *jm_table;
++	unsigned int pvtpll_adjust_factor;
++	unsigned int calibrate_length_step;
++	unsigned int calibrate_freq_per_step;
+ 	int (*config)(struct rockchip_clock_pvtpll *pvtpll,
+ 		      struct pvtpll_table *table);
++	int (*pvtpll_calibrate)(struct rockchip_clock_pvtpll *pvtpll);
++	int (*pvtpll_volt_sel_adjust)(struct rockchip_clock_pvtpll *pvtpll,
++				      u32 clock_id,
++				      u32 volt_sel);
+ };
+ 
+ struct rockchip_clock_pvtpll {
+-	const struct rockchip_clock_pvtpll_info *info;
++	struct device *dev;
++	struct list_head list_head;
++	struct rockchip_clock_pvtpll_info *info;
+ 	struct regmap *regmap;
+ 	struct clk_hw hw;
+ 	struct clk *main_clk;
+@@ -62,9 +80,21 @@ struct rockchip_clock_pvtpll {
+ 	struct clk *pvtpll_clk;
+ 	struct clk *pvtpll_out;
+ 	struct notifier_block pvtpll_nb;
++	struct delayed_work pvtpll_calibrate_work;
+ 	unsigned long cur_rate;
++	u32 pvtpll_clk_id;
+ };
+ 
++static LIST_HEAD(rockchip_clock_pvtpll_list);
++static DEFINE_MUTEX(pvtpll_list_mutex);
++
++struct otp_opp_info {
++	u16 min_freq;
++	u16 max_freq;
++	u8 volt;
++	u8 length;
++} __packed;
++
+ #define ROCKCHIP_PVTPLL(_rate, _sel, _len)			\
+ {								\
+ 	.rate = _rate##U,					\
+@@ -72,33 +102,63 @@ struct rockchip_clock_pvtpll {
+ 	.length = _len,						\
+ }
+ 
++#define ROCKCHIP_PVTPLL_VOLT_SEL(_rate, _sel, _len, _volt_sel_thr)	\
++{								\
++	.rate = _rate##U,					\
++	.ring_sel = _sel,					\
++	.length = _len,						\
++	.volt_sel_thr = _volt_sel_thr,				\
++}
++
+ static struct pvtpll_table rv1103b_core_pvtpll_table[] = {
+ 	/* rate_hz, ring_sel, length */
+-	ROCKCHIP_PVTPLL(1608000000, 1, 6),
+-	ROCKCHIP_PVTPLL(1512000000, 1, 6),
+-	ROCKCHIP_PVTPLL(1416000000, 1, 6),
+-	ROCKCHIP_PVTPLL(1296000000, 1, 6),
+-	ROCKCHIP_PVTPLL(1200000000, 1, 14),
+-	ROCKCHIP_PVTPLL(1008000000, 1, 32),
+-	ROCKCHIP_PVTPLL(816000000, 1, 60),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1608000000, 1, 6, 7),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1512000000, 1, 6, 6),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1416000000, 1, 6, 6),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1296000000, 1, 6, 5),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1200000000, 1, 6, 3),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1008000000, 1, 26, 3),
++	ROCKCHIP_PVTPLL_VOLT_SEL(816000000, 1, 50, 3),
++};
++
++static struct pvtpll_table rv1103b_enc_pvtpll_table[] = {
++	/* rate_hz, ring_se, length */
++	ROCKCHIP_PVTPLL(500000000, 1, 80),
++};
++
++static struct pvtpll_table rv1103b_isp_pvtpll_table[] = {
++	/* rate_hz, ring_se, length */
++	ROCKCHIP_PVTPLL(400000000, 1, 160),
+ };
+ 
+ static struct pvtpll_table rv1103b_npu_pvtpll_table[] = {
+ 	/* rate_hz, ring_se, length */
+-	ROCKCHIP_PVTPLL(1000000000, 1, 12),
+-	ROCKCHIP_PVTPLL(900000000, 1, 12),
+-	ROCKCHIP_PVTPLL(800000000, 1, 16),
+-	ROCKCHIP_PVTPLL(700000000, 1, 36),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1000000000, 1, 12, 7),
++	ROCKCHIP_PVTPLL_VOLT_SEL(900000000, 1, 12, 6),
++	ROCKCHIP_PVTPLL_VOLT_SEL(800000000, 1, 12, 4),
++	ROCKCHIP_PVTPLL_VOLT_SEL(700000000, 1, 32, 4),
+ };
+ 
+ static struct pvtpll_table rk3506_core_pvtpll_table[] = {
+-	/* rate_hz, ring_sel, length */
+-	ROCKCHIP_PVTPLL(1608000000, 0, 6),
+-	ROCKCHIP_PVTPLL(1512000000, 0, 6),
+-	ROCKCHIP_PVTPLL(1416000000, 0, 6),
+-	ROCKCHIP_PVTPLL(1296000000, 0, 6),
+-	ROCKCHIP_PVTPLL(1200000000, 0, 8),
+-	ROCKCHIP_PVTPLL(1008000000, 0, 15),
++	/* rate_hz, ring_sel, length, volt_sel_thr */
++	ROCKCHIP_PVTPLL_VOLT_SEL(1608000000, 0, 6, 7),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1512000000, 0, 6, 7),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1416000000, 0, 6, 5),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1296000000, 0, 6, 3),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1200000000, 0, 6, 2),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1008000000, 0, 10, 4),
++	ROCKCHIP_PVTPLL_VOLT_SEL(800000000, 0, 18, 4),
++};
++
++static struct pvtpll_table rk3506j_core_pvtpll_table[] = {
++	/* rate_hz, ring_sel, length, volt_sel_thr */
++	ROCKCHIP_PVTPLL_VOLT_SEL(1608000000, 0, 6, 7),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1512000000, 0, 7, 7),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1416000000, 0, 7, 5),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1296000000, 0, 7, 3),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1200000000, 0, 7, 2),
++	ROCKCHIP_PVTPLL_VOLT_SEL(1008000000, 0, 11, 2),
++	ROCKCHIP_PVTPLL_VOLT_SEL(800000000, 0, 19, 2),
+ };
+ 
+ static struct pvtpll_table
+@@ -187,6 +247,15 @@ static int rockchip_clock_pvtpll_set_rate(struct clk_hw *hw,
+ 	if (!pvtpll)
+ 		return 0;
+ 
++	/*
++	 * The calibration is only for the init frequency of pvtpll on the platform
++	 * which regulator is fixed, if the frequency will be change, we assume that
++	 * dvfs is working, so just cancel the calibration work and use the pvtpll
++	 * configuration from pvtpll_table, it will match the opp-table.
++	 */
++	if (pvtpll->info->pvtpll_calibrate)
++		cancel_delayed_work_sync(&pvtpll->pvtpll_calibrate_work);
++
+ 	table = rockchip_get_pvtpll_settings(pvtpll, rate);
+ 	if (!table)
+ 		return 0;
+@@ -259,22 +328,251 @@ static int clock_pvtpll_regitstor(struct device *dev,
+ 				   pvtpll->pvtpll_out);
+ }
+ 
++static int pvtpll_volt_sel_adjust_linear(struct rockchip_clock_pvtpll *pvtpll,
++					 u32 clock_id,
++					 u32 volt_sel)
++{
++	struct pvtpll_table *table = pvtpll->info->table;
++	unsigned int size = pvtpll->info->table_size;
++	unsigned int factor = pvtpll->info->pvtpll_adjust_factor;
++	uint32_t delta_len = 0;
++	int i;
++
++	for (i = 0; i < size; i++) {
++		if (!table[i].volt_sel_thr)
++			continue;
++		if (volt_sel >= table[i].volt_sel_thr) {
++			delta_len = (volt_sel - table[i].volt_sel_thr + 1) * factor;
++			table[i].length += delta_len;
++			if (table[i].length > RK3506_PVTPLL_MAX_LENGTH)
++				table[i].length = RK3506_PVTPLL_MAX_LENGTH;
++
++			/* update new pvtpll config for current rate */
++			if (table[i].rate == pvtpll->cur_rate)
++				pvtpll->info->config(pvtpll, table + i);
++		}
++	}
++
++	return 0;
++}
++
++int rockchip_pvtpll_volt_sel_adjust(u32 clock_id, u32 volt_sel)
++{
++	struct rockchip_clock_pvtpll *pvtpll;
++	int ret = -ENODEV;
++
++	mutex_lock(&pvtpll_list_mutex);
++	list_for_each_entry(pvtpll, &rockchip_clock_pvtpll_list, list_head) {
++		if ((pvtpll->pvtpll_clk_id == clock_id) && pvtpll->info->pvtpll_volt_sel_adjust) {
++			ret = pvtpll->info->pvtpll_volt_sel_adjust(pvtpll, clock_id, volt_sel);
++			break;
++		}
++	}
++	mutex_unlock(&pvtpll_list_mutex);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(rockchip_pvtpll_volt_sel_adjust);
++
++static int rockchip_pvtpll_get_otp_info(struct device *dev,
++					struct otp_opp_info *opp_info)
++{
++	struct nvmem_cell *cell;
++	void *buf;
++	size_t len = 0;
++
++	cell = nvmem_cell_get(dev, "opp-info");
++	if (IS_ERR(cell))
++		return PTR_ERR(cell);
++
++	buf = nvmem_cell_read(cell, &len);
++	if (IS_ERR(buf)) {
++		nvmem_cell_put(cell);
++		return PTR_ERR(buf);
++	}
++	if (len != sizeof(*opp_info)) {
++		kfree(buf);
++		nvmem_cell_put(cell);
++		return -EINVAL;
++	}
++
++	memcpy(opp_info, buf, sizeof(*opp_info));
++	kfree(buf);
++	nvmem_cell_put(cell);
++
++	return 0;
++}
++
++static void rockchip_switch_pvtpll_table(struct device *dev,
++					 struct rockchip_clock_pvtpll *pvtpll)
++{
++	u8 spec = 0;
++
++	if (!pvtpll->info->jm_table)
++		return;
++
++	if (!nvmem_cell_read_u8(dev, "specification_serial_number", &spec)) {
++		/* M = 0xd, J = 0xa */
++		if ((spec == 0xd) || (spec == 0xa)) {
++			pvtpll->info->table = pvtpll->info->jm_table;
++			pvtpll->info->table_size = pvtpll->info->jm_table_size;
++		}
++	}
++}
++
++static void rockchip_adjust_pvtpll_by_otp(struct device *dev,
++					  struct rockchip_clock_pvtpll *pvtpll)
++{
++	struct otp_opp_info opp_info = { 0 };
++	struct pvtpll_table *table = pvtpll->info->table;
++	unsigned int size = pvtpll->info->table_size;
++	u32 min_freq, max_freq;
++	int i;
++
++	if (rockchip_pvtpll_get_otp_info(dev, &opp_info))
++		return;
++
++	if (!opp_info.length)
++		return;
++
++	dev_info(dev, "adjust opp-table by otp: min=%uM, max=%uM, length=%u\n",
++		 opp_info.min_freq, opp_info.max_freq, opp_info.length);
++
++	min_freq = opp_info.min_freq * MHz;
++	max_freq = opp_info.max_freq * MHz;
++
++	for (i = 0; i < size; i++) {
++		if (table[i].rate < min_freq)
++			continue;
++		if (table[i].rate > max_freq)
++			continue;
++
++		table[i].length += opp_info.length;
++		if (table[i].length > RK3506_PVTPLL_MAX_LENGTH)
++			table[i].length = RK3506_PVTPLL_MAX_LENGTH;
++	}
++}
++
++static int rv1103b_pvtpll_calibrate(struct rockchip_clock_pvtpll *pvtpll)
++{
++	unsigned int rate, delta, length, length_ori, val, i = 0;
++	unsigned int length_step = pvtpll->info->calibrate_length_step;
++	unsigned int freq_per_step = pvtpll->info->calibrate_freq_per_step;
++	unsigned long target_rate = pvtpll->cur_rate / MHz;
++	int ret;
++
++	ret = regmap_read(pvtpll->regmap, RV1103B_PVTPLL_GCK_CNT_AVG, &rate);
++	if (ret)
++		return ret;
++
++	if (rate < target_rate)
++		return 0;
++
++	/* delta < (6.25% * target_rate) */
++	if ((rate - target_rate) < (target_rate >> 4))
++		return 0;
++
++	ret = regmap_read(pvtpll->regmap, RV1103B_PVTPLL_GCK_LEN, &val);
++	if (ret)
++		return ret;
++	length_ori = (val >> RV1103B_GCK_RING_LEN_SEL_OFFSET) & RV1103B_GCK_RING_LEN_SEL_MASK;
++	length = length_ori;
++	delta = rate - target_rate;
++	length += (delta / freq_per_step) * length_step;
++	val = HIWORD_UPDATE(length, RV1103B_GCK_RING_LEN_SEL_MASK,
++			    RV1103B_GCK_RING_LEN_SEL_OFFSET);
++	ret = regmap_write(pvtpll->regmap, RV1103B_PVTPLL_GCK_LEN, val);
++	if (ret)
++		return ret;
++	usleep_range(2000, 2100);
++	ret = regmap_read(pvtpll->regmap, RV1103B_PVTPLL_GCK_CNT_AVG, &rate);
++	if (ret)
++		return ret;
++
++	while ((rate < target_rate) || ((rate - target_rate) > (target_rate >> 4))) {
++		if (i++ > 20)
++			break;
++
++		if (rate > target_rate)
++			length += length_step;
++		else
++			length -= length_step;
++		if (length < length_ori)
++			break;
++
++		val = HIWORD_UPDATE(length, RV1103B_GCK_RING_LEN_SEL_MASK,
++				    RV1103B_GCK_RING_LEN_SEL_OFFSET);
++		ret = regmap_write(pvtpll->regmap, RV1103B_PVTPLL_GCK_LEN, val);
++		if (ret)
++			return ret;
++		usleep_range(2000, 2100);
++		ret = regmap_read(pvtpll->regmap, RV1103B_PVTPLL_GCK_CNT_AVG, &rate);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++static void rockchip_pvtpll_calibrate(struct work_struct *work)
++{
++	struct rockchip_clock_pvtpll *pvtpll;
++	int ret;
++
++	pvtpll = container_of(work, struct rockchip_clock_pvtpll, pvtpll_calibrate_work.work);
++
++	if (pvtpll->info->pvtpll_calibrate) {
++		ret = pvtpll->info->pvtpll_calibrate(pvtpll);
++		if (ret)
++			dev_warn(pvtpll->dev, "%s: calibrate error, ret %d\n", __func__, ret);
++	}
++}
++
+ static const struct rockchip_clock_pvtpll_info rv1103b_core_pvtpll_data = {
+ 	.config = rv1103b_pvtpll_configs,
+ 	.table_size = ARRAY_SIZE(rv1103b_core_pvtpll_table),
+ 	.table = rv1103b_core_pvtpll_table,
++	.pvtpll_adjust_factor = 4,
++	.pvtpll_volt_sel_adjust = pvtpll_volt_sel_adjust_linear,
++	.calibrate_length_step = 2,
++	.calibrate_freq_per_step = 30,
++	.pvtpll_calibrate = rv1103b_pvtpll_calibrate,
++};
++
++static const struct rockchip_clock_pvtpll_info rv1103b_enc_pvtpll_data = {
++	.config = rv1103b_pvtpll_configs,
++	.table_size = ARRAY_SIZE(rv1103b_enc_pvtpll_table),
++	.table = rv1103b_enc_pvtpll_table,
++	.calibrate_length_step = 8,
++	.calibrate_freq_per_step = 25,
++	.pvtpll_calibrate = rv1103b_pvtpll_calibrate,
++};
++
++static const struct rockchip_clock_pvtpll_info rv1103b_isp_pvtpll_data = {
++	.config = rv1103b_pvtpll_configs,
++	.table_size = ARRAY_SIZE(rv1103b_isp_pvtpll_table),
++	.table = rv1103b_isp_pvtpll_table,
+ };
+ 
+ static const struct rockchip_clock_pvtpll_info rv1103b_npu_pvtpll_data = {
+ 	.config = rv1103b_pvtpll_configs,
+ 	.table_size = ARRAY_SIZE(rv1103b_npu_pvtpll_table),
+ 	.table = rv1103b_npu_pvtpll_table,
++	.pvtpll_adjust_factor = 6,
++	.pvtpll_volt_sel_adjust = pvtpll_volt_sel_adjust_linear,
++	.calibrate_length_step = 4,
++	.calibrate_freq_per_step = 25,
++	.pvtpll_calibrate = rv1103b_pvtpll_calibrate,
+ };
+ 
+ static const struct rockchip_clock_pvtpll_info rk3506_core_pvtpll_data = {
+ 	.config = rk3506_pvtpll_configs,
+ 	.table_size = ARRAY_SIZE(rk3506_core_pvtpll_table),
+ 	.table = rk3506_core_pvtpll_table,
++	.jm_table_size = ARRAY_SIZE(rk3506j_core_pvtpll_table),
++	.jm_table = rk3506j_core_pvtpll_table,
++	.pvtpll_adjust_factor = 1,
++	.pvtpll_volt_sel_adjust = pvtpll_volt_sel_adjust_linear,
+ };
+ 
+ static const struct of_device_id rockchip_clock_pvtpll_match[] = {
+@@ -282,6 +580,14 @@ static const struct of_device_id rockchip_clock_pvtpll_match[] = {
+ 		.compatible = "rockchip,rv1103b-core-pvtpll",
+ 		.data = (void *)&rv1103b_core_pvtpll_data,
+ 	},
++	{
++		.compatible = "rockchip,rv1103b-enc-pvtpll",
++		.data = (void *)&rv1103b_enc_pvtpll_data,
++	},
++	{
++		.compatible = "rockchip,rv1103b-isp-pvtpll",
++		.data = (void *)&rv1103b_isp_pvtpll_data,
++	},
+ 	{
+ 		.compatible = "rockchip,rv1103b-npu-pvtpll",
+ 		.data = (void *)&rv1103b_npu_pvtpll_data,
+@@ -299,13 +605,14 @@ static int rockchip_clock_pvtpll_probe(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	struct device_node *np = pdev->dev.of_node;
+ 	struct rockchip_clock_pvtpll *pvtpll;
++	struct of_phandle_args clkspec = { 0 };
+ 	int error = 0;
+ 
+ 	pvtpll = devm_kzalloc(dev, sizeof(*pvtpll), GFP_KERNEL);
+ 	if (!pvtpll)
+ 		return -ENOMEM;
+ 
+-	pvtpll->info = (const struct rockchip_clock_pvtpll_info *)device_get_match_data(&pdev->dev);
++	pvtpll->info = (struct rockchip_clock_pvtpll_info *)device_get_match_data(&pdev->dev);
+ 	if (!pvtpll->info)
+ 		return -EINVAL;
+ 
+@@ -313,15 +620,39 @@ static int rockchip_clock_pvtpll_probe(struct platform_device *pdev)
+ 	if (IS_ERR(pvtpll->regmap))
+ 		return PTR_ERR(pvtpll->regmap);
+ 
++	pvtpll->dev = dev;
++	pvtpll->pvtpll_clk_id = UINT_MAX;
++	INIT_DELAYED_WORK(&pvtpll->pvtpll_calibrate_work, rockchip_pvtpll_calibrate);
++
++	error = of_parse_phandle_with_args(np, "clocks", "#clock-cells",
++					   0, &clkspec);
++	if (!error) {
++		pvtpll->pvtpll_clk_id = clkspec.args[0];
++		of_node_put(clkspec.np);
++	}
++
++	rockchip_switch_pvtpll_table(dev, pvtpll);
++
++	rockchip_adjust_pvtpll_by_otp(dev, pvtpll);
++
+ 	platform_set_drvdata(pdev, pvtpll);
+ 
+ 	error = clock_pvtpll_regitstor(&pdev->dev, pvtpll);
+ 	if (error) {
+-		dev_err(&pdev->dev, "failed to register clock: %d\n",
+-			error);
++		dev_err(&pdev->dev, "failed to register clock: %d\n", error);
++		return error;
+ 	}
+ 
+-	return error;
++	if (pvtpll->info->pvtpll_calibrate)
++		queue_delayed_work(system_freezable_wq,
++				   &pvtpll->pvtpll_calibrate_work,
++				   0);
++
++	mutex_lock(&pvtpll_list_mutex);
++	list_add(&pvtpll->list_head, &rockchip_clock_pvtpll_list);
++	mutex_unlock(&pvtpll_list_mutex);
++
++	return 0;
+ }
+ 
+ static int rockchip_clock_pvtpll_remove(struct platform_device *pdev)
+diff --git a/drivers/clk/rockchip/clk-px30.c b/drivers/clk/rockchip/clk-px30.c
+index 85eb05493..f6d0b4e54 100644
+--- a/drivers/clk/rockchip/clk-px30.c
++++ b/drivers/clk/rockchip/clk-px30.c
+@@ -171,8 +171,8 @@ PNAME(mux_uart3_p)		= { "clk_uart3_src", "clk_uart3_np5", "clk_uart3_frac" };
+ PNAME(mux_uart4_p)		= { "clk_uart4_src", "clk_uart4_np5", "clk_uart4_frac" };
+ PNAME(mux_uart5_p)		= { "clk_uart5_src", "clk_uart5_np5", "clk_uart5_frac" };
+ PNAME(mux_cif_out_p)		= { "xin24m", "dummy_cpll", "dummy_npll", "usb480m" };
+-PNAME(mux_dclk_vopb_p)		= { "dclk_vopb_src", "dummy", "xin24m" };
+-PNAME(mux_dclk_vopl_p)		= { "dclk_vopl_src", "dummy", "xin24m" };
++PNAME(mux_dclk_vopb_p)		= { "dclk_vopb_src", "dclk_vopb_frac", "xin24m" };
++PNAME(mux_dclk_vopl_p)		= { "dclk_vopl_src", "dclk_vopl_frac", "xin24m" };
+ PNAME(mux_nandc_p)		= { "clk_nandc_div", "clk_nandc_div50" };
+ PNAME(mux_sdio_p)		= { "clk_sdio_div", "clk_sdio_div50" };
+ PNAME(mux_emmc_p)		= { "clk_emmc_div", "clk_emmc_div50" };
+@@ -188,10 +188,10 @@ PNAME(mux_gpu_p)		= { "clk_gpu_div", "clk_gpu_np5" };
+ 
+ static struct rockchip_pll_clock px30_pll_clks[] __initdata = {
+ 	[apll] = PLL(pll_rk3328, PLL_APLL, "apll", mux_pll_p,
+-		     CLK_IS_CRITICAL, PX30_PLL_CON(0),
++		     0, PX30_PLL_CON(0),
+ 		     PX30_MODE_CON, 0, 0, 0, px30_pll_rates),
+ 	[dpll] = PLL(pll_rk3328, PLL_DPLL, "dpll", mux_pll_p,
+-		     CLK_IS_CRITICAL, PX30_PLL_CON(8),
++		     0, PX30_PLL_CON(8),
+ 		     PX30_MODE_CON, 4, 1, 0, NULL),
+ 	[cpll] = PLL(pll_rk3328, PLL_CPLL, "cpll", mux_pll_p,
+ 		     0, PX30_PLL_CON(16),
+@@ -250,6 +250,14 @@ static struct rockchip_clk_branch px30_uart5_fracmux __initdata =
+ 	MUX(0, "clk_uart5_mux", mux_uart5_p, CLK_SET_RATE_PARENT,
+ 			PX30_CLKSEL_CON(47), 14, 2, MFLAGS);
+ 
++static struct rockchip_clk_branch px30_dclk_vopb_fracmux __initdata =
++	MUX(0, "dclk_vopb_mux", mux_dclk_vopb_p, CLK_SET_RATE_PARENT,
++			PX30_CLKSEL_CON(5), 14, 2, MFLAGS);
++
++static struct rockchip_clk_branch px30_dclk_vopl_fracmux __initdata =
++	MUX(0, "dclk_vopl_mux", mux_dclk_vopl_p, CLK_SET_RATE_PARENT,
++			PX30_CLKSEL_CON(8), 14, 2, MFLAGS);
++
+ static struct rockchip_clk_branch px30_rtc32k_pmu_fracmux __initdata =
+ 	MUX(SCLK_RTC32K_PMU, "clk_rtc32k_pmu", mux_rtc32k_pmu_p, CLK_SET_RATE_PARENT | CLK_IS_CRITICAL,
+ 			PX30_PMU_CLKSEL_CON(0), 14, 2, MFLAGS);
+@@ -404,14 +412,20 @@ static struct rockchip_clk_branch px30_clk_branches[] __initdata = {
+ 	COMPOSITE(0, "dclk_vopb_src", mux_cpll_npll_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
+ 			PX30_CLKSEL_CON(5), 11, 1, MFLAGS, 0, 8, DFLAGS,
+ 			PX30_CLKGATE_CON(2), 2, GFLAGS),
+-	COMPOSITE_NODIV(DCLK_VOPB, "dclk_vopb", mux_dclk_vopb_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
+-			PX30_CLKSEL_CON(5), 14, 2, MFLAGS,
++	COMPOSITE_FRACMUX(0, "dclk_vopb_frac", "dclk_vopb_src", CLK_SET_RATE_PARENT,
++			PX30_CLKSEL_CON(6), 0,
++			PX30_CLKGATE_CON(2), 3, GFLAGS,
++			&px30_dclk_vopb_fracmux),
++	GATE(DCLK_VOPB, "dclk_vopb", "dclk_vopb_mux", CLK_SET_RATE_PARENT,
+ 			PX30_CLKGATE_CON(2), 4, GFLAGS),
+ 	COMPOSITE(0, "dclk_vopl_src", mux_npll_cpll_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
+ 			PX30_CLKSEL_CON(8), 11, 1, MFLAGS, 0, 8, DFLAGS,
+ 			PX30_CLKGATE_CON(2), 6, GFLAGS),
+-	COMPOSITE_NODIV(DCLK_VOPL, "dclk_vopl", mux_dclk_vopl_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
+-			PX30_CLKSEL_CON(8), 14, 2, MFLAGS,
++	COMPOSITE_FRACMUX(0, "dclk_vopl_frac", "dclk_vopl_src", CLK_SET_RATE_PARENT,
++			PX30_CLKSEL_CON(9), 0,
++			PX30_CLKGATE_CON(2), 7, GFLAGS,
++			&px30_dclk_vopl_fracmux),
++	GATE(DCLK_VOPL, "dclk_vopl", "dclk_vopl_mux", CLK_SET_RATE_PARENT,
+ 			PX30_CLKGATE_CON(2), 8, GFLAGS),
+ 
+ 	/* PD_VPU */
+@@ -1000,20 +1014,6 @@ static void __init px30_register_armclk(void)
+ 				     ARRAY_SIZE(px30_cpuclk_rates));
+ }
+ 
+-static int protect_clocks[] = {
+-	SCLK_VOPB_PWM,
+-	SCLK_PWM0,
+-	SCLK_PWM1,
+-	PCLK_PWM0,
+-	PCLK_PWM1,
+-	ACLK_VOPB,
+-	ACLK_VOPL,
+-	HCLK_VOPB,
+-	HCLK_VOPL,
+-	DCLK_VOPB,
+-	DCLK_VOPL,
+-};
+-
+ static void __init px30_clk_init(struct device_node *np)
+ {
+ 	struct rockchip_clk_provider *ctx;
+@@ -1063,8 +1063,6 @@ static void __init px30_clk_init(struct device_node *np)
+ 	rockchip_register_restart_notifier(ctx, PX30_GLB_SRST_FST, NULL);
+ 
+ 	rockchip_clk_of_add_provider(np, ctx);
+-
+-	rockchip_clk_protect(ctx, protect_clocks, ARRAY_SIZE(protect_clocks));
+ }
+ CLK_OF_DECLARE(px30_cru, "rockchip,px30-cru", px30_clk_init);
+ 
+diff --git a/drivers/clk/rockchip/clk-rk3188.c b/drivers/clk/rockchip/clk-rk3188.c
+index d891b80d6..510a70d4d 100644
+--- a/drivers/clk/rockchip/clk-rk3188.c
++++ b/drivers/clk/rockchip/clk-rk3188.c
+@@ -258,19 +258,19 @@ static struct rockchip_clk_branch common_spdif_fracmux __initdata =
+ 			RK2928_CLKSEL_CON(5), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch common_uart0_fracmux __initdata =
+-	MUX(SCLK_UART0, "sclk_uart0", mux_sclk_uart0_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_UART0, "sclk_uart0", mux_sclk_uart0_p, 0,
+ 			RK2928_CLKSEL_CON(13), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch common_uart1_fracmux __initdata =
+-	MUX(SCLK_UART1, "sclk_uart1", mux_sclk_uart1_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_UART1, "sclk_uart1", mux_sclk_uart1_p, 0,
+ 			RK2928_CLKSEL_CON(14), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch common_uart2_fracmux __initdata =
+-	MUX(SCLK_UART2, "sclk_uart2", mux_sclk_uart2_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_UART2, "sclk_uart2", mux_sclk_uart2_p, 0,
+ 			RK2928_CLKSEL_CON(15), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch common_uart3_fracmux __initdata =
+-	MUX(SCLK_UART3, "sclk_uart3", mux_sclk_uart3_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_UART3, "sclk_uart3", mux_sclk_uart3_p, 0,
+ 			RK2928_CLKSEL_CON(16), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch common_clk_branches[] __initdata = {
+@@ -411,28 +411,28 @@ static struct rockchip_clk_branch common_clk_branches[] __initdata = {
+ 	COMPOSITE_NOMUX(0, "uart0_pre", "uart_src", 0,
+ 			RK2928_CLKSEL_CON(13), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(1), 8, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "uart0_frac", "uart0_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "uart0_frac", "uart0_pre", 0,
+ 			RK2928_CLKSEL_CON(17), 0,
+ 			RK2928_CLKGATE_CON(1), 9, GFLAGS,
+ 			&common_uart0_fracmux),
+ 	COMPOSITE_NOMUX(0, "uart1_pre", "uart_src", 0,
+ 			RK2928_CLKSEL_CON(14), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(1), 10, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "uart1_frac", "uart1_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "uart1_frac", "uart1_pre", 0,
+ 			RK2928_CLKSEL_CON(18), 0,
+ 			RK2928_CLKGATE_CON(1), 11, GFLAGS,
+ 			&common_uart1_fracmux),
+ 	COMPOSITE_NOMUX(0, "uart2_pre", "uart_src", 0,
+ 			RK2928_CLKSEL_CON(15), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(1), 12, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "uart2_frac", "uart2_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "uart2_frac", "uart2_pre", 0,
+ 			RK2928_CLKSEL_CON(19), 0,
+ 			RK2928_CLKGATE_CON(1), 13, GFLAGS,
+ 			&common_uart2_fracmux),
+ 	COMPOSITE_NOMUX(0, "uart3_pre", "uart_src", 0,
+ 			RK2928_CLKSEL_CON(16), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(1), 14, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "uart3_frac", "uart3_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "uart3_frac", "uart3_pre", 0,
+ 			RK2928_CLKSEL_CON(20), 0,
+ 			RK2928_CLKGATE_CON(1), 15, GFLAGS,
+ 			&common_uart3_fracmux),
+@@ -546,15 +546,15 @@ static struct clk_div_table div_aclk_cpu_t[] = {
+ };
+ 
+ static struct rockchip_clk_branch rk3066a_i2s0_fracmux __initdata =
+-	MUX(SCLK_I2S0, "sclk_i2s0", mux_sclk_i2s0_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_I2S0, "sclk_i2s0", mux_sclk_i2s0_p, 0,
+ 			RK2928_CLKSEL_CON(2), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch rk3066a_i2s1_fracmux __initdata =
+-	MUX(SCLK_I2S1, "sclk_i2s1", mux_sclk_i2s1_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_I2S1, "sclk_i2s1", mux_sclk_i2s1_p, 0,
+ 			RK2928_CLKSEL_CON(3), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch rk3066a_i2s2_fracmux __initdata =
+-	MUX(SCLK_I2S2, "sclk_i2s2", mux_sclk_i2s2_p, CLK_SET_RATE_PARENT,
++	MUX(SCLK_I2S2, "sclk_i2s2", mux_sclk_i2s2_p, 0,
+ 			RK2928_CLKSEL_CON(4), 8, 2, MFLAGS);
+ 
+ static struct rockchip_clk_branch rk3066a_clk_branches[] __initdata = {
+@@ -618,21 +618,21 @@ static struct rockchip_clk_branch rk3066a_clk_branches[] __initdata = {
+ 	COMPOSITE_NOMUX(0, "i2s0_pre", "i2s_src", 0,
+ 			RK2928_CLKSEL_CON(2), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(0), 7, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "i2s0_frac", "i2s0_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "i2s0_frac", "i2s0_pre", 0,
+ 			RK2928_CLKSEL_CON(6), 0,
+ 			RK2928_CLKGATE_CON(0), 8, GFLAGS,
+ 			&rk3066a_i2s0_fracmux),
+ 	COMPOSITE_NOMUX(0, "i2s1_pre", "i2s_src", 0,
+ 			RK2928_CLKSEL_CON(3), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(0), 9, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "i2s1_frac", "i2s1_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "i2s1_frac", "i2s1_pre", 0,
+ 			RK2928_CLKSEL_CON(7), 0,
+ 			RK2928_CLKGATE_CON(0), 10, GFLAGS,
+ 			&rk3066a_i2s1_fracmux),
+ 	COMPOSITE_NOMUX(0, "i2s2_pre", "i2s_src", 0,
+ 			RK2928_CLKSEL_CON(4), 0, 7, DFLAGS,
+ 			RK2928_CLKGATE_CON(0), 11, GFLAGS),
+-	COMPOSITE_FRACMUX(0, "i2s2_frac", "i2s2_pre", CLK_SET_RATE_PARENT,
++	COMPOSITE_FRACMUX(0, "i2s2_frac", "i2s2_pre", 0,
+ 			RK2928_CLKSEL_CON(8), 0,
+ 			RK2928_CLKGATE_CON(0), 12, GFLAGS,
+ 			&rk3066a_i2s2_fracmux),
+diff --git a/drivers/clk/rockchip/clk-rk3368.c b/drivers/clk/rockchip/clk-rk3368.c
+index 3ddff548e..c56ea321e 100644
+--- a/drivers/clk/rockchip/clk-rk3368.c
++++ b/drivers/clk/rockchip/clk-rk3368.c
+@@ -495,7 +495,7 @@ static struct rockchip_clk_branch rk3368_clk_branches[] __initdata = {
+ 	COMPOSITE_NODIV(0, "vip_src", mux_pll_src_cpll_gpll_p, 0,
+ 			RK3368_CLKSEL_CON(21), 15, 1, MFLAGS,
+ 			RK3368_CLKGATE_CON(4), 5, GFLAGS),
+-	COMPOSITE_NOGATE(SCLK_VIP_OUT, "sclk_vip_out", mux_vip_out_p, 0,
++	COMPOSITE_NOGATE(0, "sclk_vip_out", mux_vip_out_p, 0,
+ 			RK3368_CLKSEL_CON(21), 14, 1, MFLAGS, 8, 5, DFLAGS),
+ 
+ 	COMPOSITE_NODIV(SCLK_EDP_24M, "sclk_edp_24m", mux_edp_24m_p, 0,
+@@ -839,8 +839,8 @@ static struct rockchip_clk_branch rk3368_clk_branches[] __initdata = {
+ 	 * pclk_vio gates
+ 	 * pclk_vio comes from the exactly same source as hclk_vio
+ 	 */
+-	GATE(PCLK_DPHYRX, "pclk_dphyrx", "hclk_vio", CLK_IGNORE_UNUSED, RK3368_CLKGATE_CON(22), 11, GFLAGS),
+-	GATE(PCLK_DPHYTX0, "pclk_dphytx0", "hclk_vio", CLK_IGNORE_UNUSED, RK3368_CLKGATE_CON(22), 10, GFLAGS),
++	GATE(0, "pclk_dphyrx", "hclk_vio", CLK_IGNORE_UNUSED, RK3368_CLKGATE_CON(14), 8, GFLAGS),
++	GATE(0, "pclk_dphytx", "hclk_vio", CLK_IGNORE_UNUSED, RK3368_CLKGATE_CON(14), 8, GFLAGS),
+ 
+ 	/* pclk_pd_pmu gates */
+ 	GATE(PCLK_PMUGRF, "pclk_pmugrf", "pclk_pd_pmu", CLK_IGNORE_UNUSED, RK3368_CLKGATE_CON(23), 5, GFLAGS),
+diff --git a/drivers/clk/rockchip/clk-rk3399.c b/drivers/clk/rockchip/clk-rk3399.c
+index f09a5dfb0..6c4e0d248 100644
+--- a/drivers/clk/rockchip/clk-rk3399.c
++++ b/drivers/clk/rockchip/clk-rk3399.c
+@@ -561,7 +561,7 @@ static struct rockchip_clk_branch rk3399_clk_branches[] __initdata = {
+ 	COMPOSITE_NOMUX(0, "atclk_core_l", "armclkl", CLK_IGNORE_UNUSED,
+ 			RK3399_CLKSEL_CON(1), 0, 5, DFLAGS | CLK_DIVIDER_READ_ONLY,
+ 			RK3399_CLKGATE_CON(0), 5, GFLAGS),
+-	COMPOSITE_NOMUX(PCLK_COREDBG_L, "pclk_dbg_core_l", "armclkl", CLK_IGNORE_UNUSED,
++	COMPOSITE_NOMUX(0, "pclk_dbg_core_l", "armclkl", CLK_IGNORE_UNUSED,
+ 			RK3399_CLKSEL_CON(1), 8, 5, DFLAGS | CLK_DIVIDER_READ_ONLY,
+ 			RK3399_CLKGATE_CON(0), 6, GFLAGS),
+ 
+@@ -611,7 +611,7 @@ static struct rockchip_clk_branch rk3399_clk_branches[] __initdata = {
+ 	GATE(ACLK_GIC_ADB400_CORE_B_2_GIC, "aclk_core_adb400_core_b_2_gic", "armclkb", CLK_IGNORE_UNUSED,
+ 			RK3399_CLKGATE_CON(14), 4, GFLAGS),
+ 
+-	DIV(PCLK_COREDBG_B, "pclken_dbg_core_b", "pclk_dbg_core_b", CLK_IGNORE_UNUSED,
++	DIV(0, "pclken_dbg_core_b", "pclk_dbg_core_b", CLK_IGNORE_UNUSED,
+ 			RK3399_CLKSEL_CON(3), 13, 2, DFLAGS | CLK_DIVIDER_READ_ONLY),
+ 
+ 	GATE(0, "pclk_dbg_cxcs_pd_core_b", "pclk_dbg_core_b", CLK_IGNORE_UNUSED,
+@@ -1611,17 +1611,6 @@ static struct notifier_block rk3399_clk_panic_block = {
+ 	.notifier_call = rk3399_clk_panic,
+ };
+ 
+-static int protect_clocks[] = {
+-	SCLK_VOP0_PWM,
+-	SCLK_VOP1_PWM,
+-	ACLK_VOP0,
+-	HCLK_VOP0,
+-	ACLK_VOP1,
+-	HCLK_VOP1,
+-	DCLK_VOP0,
+-	DCLK_VOP1,
+-};
+-
+ static void __init rk3399_clk_init(struct device_node *np)
+ {
+ 	struct rockchip_clk_provider *ctx;
+@@ -1666,8 +1655,6 @@ static void __init rk3399_clk_init(struct device_node *np)
+ 	rockchip_register_restart_notifier(ctx, RK3399_GLB_SRST_FST, NULL);
+ 
+ 	rockchip_clk_of_add_provider(np, ctx);
+-
+-	rockchip_clk_protect(ctx, protect_clocks, ARRAY_SIZE(protect_clocks));
+ }
+ CLK_OF_DECLARE(rk3399_cru, "rockchip,rk3399-cru", rk3399_clk_init);
+ 
+diff --git a/drivers/clk/rockchip/clk-rk3562.c b/drivers/clk/rockchip/clk-rk3562.c
+index 75a7c8470..b7c99250a 100644
+--- a/drivers/clk/rockchip/clk-rk3562.c
++++ b/drivers/clk/rockchip/clk-rk3562.c
+@@ -1030,14 +1030,6 @@ static void rk3562_dump_cru(void)
+ }
+ 
+ static int protect_clocks[] = {
+-	PCLK_PWM1_PERI,
+-	CLK_PWM1_PERI,
+-	PCLK_PWM2_PERI,
+-	CLK_PWM2_PERI,
+-	PCLK_PWM3_PERI,
+-	CLK_PWM3_PERI,
+-	PCLK_PMU1_PWM0,
+-	CLK_PMU1_PWM0,
+ 	ACLK_VO_PRE,
+ 	HCLK_VO_PRE,
+ 	ACLK_VOP,
+diff --git a/drivers/clk/rockchip/clk-rv1103b.c b/drivers/clk/rockchip/clk-rv1103b.c
+new file mode 100644
+index 000000000..57d9c7d13
+--- /dev/null
++++ b/drivers/clk/rockchip/clk-rv1103b.c
+@@ -0,0 +1,752 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2024 Rockchip Electronics Co. Ltd.
++ * Author: Elaine Zhang <zhangqing@rock-chips.com>
++ */
++
++#include <linux/clk.h>
++#include <linux/clk-provider.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_device.h>
++#include <linux/regmap.h>
++#include <linux/syscore_ops.h>
++#include <dt-bindings/clock/rockchip,rv1103b-cru.h>
++#include "clk.h"
++
++#define RV1103B_GRF_SOC_STATUS0		0x10
++
++#define RV1103B_FRAC_MAX_PRATE		1200000000
++
++#define PVTPLL_SRC_SEL_PVTPLL		(BIT(0) | BIT(16))
++
++enum rv1103b_plls {
++	dpll,
++	gpll,
++};
++
++static struct rockchip_pll_rate_table rv1103b_pll_rates[] = {
++	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
++	RK3036_PLL_RATE(1200000000, 1, 100, 2, 1, 1, 0),
++	RK3036_PLL_RATE(1188000000, 1, 99, 2, 1, 1, 0),
++	RK3036_PLL_RATE(1000000000, 3, 250, 2, 1, 1, 0),
++	{ /* sentinel */ },
++};
++
++#define RV1103B_DIV_ACLK_CORE_MASK	0x1f
++#define RV1103B_DIV_ACLK_CORE_SHIFT	0
++#define RV1103B_DIV_PCLK_DBG_MASK	0x1f
++#define RV1103B_DIV_PCLK_DBG_SHIFT	8
++#define RV1103B_CORE_SEL_MASK		0x1
++#define RV1103B_CORE_SEL_SHIFT		1
++#define RV1103B_ALT_DIV_MASK		0x7
++#define RV1103B_ALT_DIV_SHIFT		13
++
++#define RV1103B_CLKSEL0(_aclk_core)						\
++{										\
++	.reg = RV1103B_CORECLKSEL_CON(2),					\
++	.val = HIWORD_UPDATE(_aclk_core - 1, RV1103B_DIV_ACLK_CORE_MASK,	\
++			     RV1103B_DIV_ACLK_CORE_SHIFT),			\
++}
++
++#define RV1103B_CLKSEL1(_pclk_dbg)						\
++{										\
++	.reg = RV1103B_CORECLKSEL_CON(2),					\
++	.val = HIWORD_UPDATE(_pclk_dbg - 1, RV1103B_DIV_PCLK_DBG_MASK,		\
++			     RV1103B_DIV_PCLK_DBG_SHIFT),			\
++}
++
++#define RV1103B_CPUCLK_RATE(_prate, _aclk_core, _pclk_dbg)			\
++{										\
++	.prate = _prate,							\
++	.divs = {								\
++		RV1103B_CLKSEL0(_aclk_core),					\
++		RV1103B_CLKSEL1(_pclk_dbg),					\
++	},									\
++}
++
++static struct rockchip_cpuclk_rate_table rv1103b_cpuclk_rates[] __initdata = {
++	RV1103B_CPUCLK_RATE(1608000000, 4, 10),
++	RV1103B_CPUCLK_RATE(1512000000, 4, 10),
++	RV1103B_CPUCLK_RATE(1416000000, 4, 10),
++	RV1103B_CPUCLK_RATE(1296000000, 3, 10),
++	RV1103B_CPUCLK_RATE(1200000000, 3, 10),
++	RV1103B_CPUCLK_RATE(1188000000, 3, 8),
++	RV1103B_CPUCLK_RATE(1104000000, 2, 8),
++	RV1103B_CPUCLK_RATE(1008000000, 2, 8),
++	RV1103B_CPUCLK_RATE(816000000, 2, 6),
++	RV1103B_CPUCLK_RATE(600000000, 2, 4),
++	RV1103B_CPUCLK_RATE(594000000, 2, 4),
++	RV1103B_CPUCLK_RATE(408000000, 1, 3),
++	RV1103B_CPUCLK_RATE(396000000, 1, 3),
++};
++
++PNAME(mux_pll_p)			= { "xin24m" };
++PNAME(mux_200m_100m_p)			= { "clk_gpll_div6", "clk_gpll_div12" };
++PNAME(mux_gpll_24m_p)			= { "gpll", "xin24m" };
++PNAME(mux_480m_400m_300m_200m_p)	= { "clk_gpll_div2p5", "clk_gpll_div3", "clk_gpll_div4", "clk_gpll_div6" };
++PNAME(mux_480m_400m_300m_p)		= { "clk_gpll_div2p5", "clk_gpll_div3", "clk_gpll_div4" };
++PNAME(mux_300m_200m_p)			= { "clk_gpll_div4", "clk_gpll_div6" };
++PNAME(mux_600m_480m_400m_p)		= { "clk_gpll_div2", "clk_gpll_div2p5", "clk_gpll_div3" };
++PNAME(mux_400m_300m_p)			= { "clk_gpll_div3", "clk_gpll_div4" };
++PNAME(mux_100m_24m_p)			= { "clk_gpll_div12", "xin24m" };
++PNAME(mux_200m_24m_p)			= { "clk_gpll_div6", "xin24m" };
++PNAME(mux_200m_100m_50m_24m_p)		= { "clk_gpll_div6", "clk_gpll_div12", "clk_gpll_div24", "xin24m" };
++PNAME(mux_300m_200m_100m_p)		= { "clk_gpll_div4", "clk_gpll_div6", "clk_gpll_div12" };
++PNAME(sclk_uart0_src_p)			= { "clk_uart0_src", "clk_uart0_frac", "xin24m" };
++PNAME(sclk_uart1_src_p)			= { "clk_uart1_src", "clk_uart1_frac", "xin24m" };
++PNAME(sclk_uart2_src_p)			= { "clk_uart2_src", "clk_uart2_frac", "xin24m" };
++PNAME(mclk_sai_src_p)			= { "clk_sai_src", "clk_sai_frac", "mclk_sai_from_io", "xin_osc0_half" };
++PNAME(clk_freq_pwm0_src_p)		= { "sclk_sai_from_io", "mclk_sai_from_io", "clk_testout_out" };
++PNAME(clk_counter_pwm0_src_p)		= { "sclk_sai_from_io", "mclk_sai_from_io", "clk_testout_out" };
++PNAME(clk_mipi0_out2io_p)		= { "clk_ref_mipi0", "xin24m" };
++PNAME(clk_mipi1_out2io_p)		= { "clk_ref_mipi1", "xin24m" };
++PNAME(mclk_sai_out2io_p)		= { "mclk_sai_src", "xin_osc0_half" };
++PNAME(aclk_npu_root_p)			= { "clk_npu_src", "clk_npu_pvtpll" };
++PNAME(clk_core_vepu_p)			= { "clk_vepu_src", "clk_vepu_pvtpll" };
++PNAME(lsclk_vi_root_p)			= { "clk_gpll_div6", "lsclk_vi_100m" };
++PNAME(clk_core_isp_p)			= { "clk_isp_src", "clk_isp_pvtpll_src" };
++PNAME(lsclk_pmu_root_p)			= { "xin24m", "clk_rc_osc_io" };
++PNAME(xin_rc_div_p)			= { "xin24m", "clk_rc_osc_io" };
++PNAME(clk_32k_p)			= { "xin_rc_div", "clk_32k_rtc", "clk_32k_io" };
++PNAME(dbclk_pmu_gpio0_p)		= { "xin24m", "clk_32k" };
++PNAME(sclk_sfc_2x_pmu1_p)		= { "clk_gpll_div12", "clk_rc_osc_io" };
++PNAME(mux_armclk_p)			= { "armclk_gpll", "clk_core_pvtpll" };
++
++static struct rockchip_pll_clock rv1103b_pll_clks[] __initdata = {
++	[dpll] = PLL(pll_rk3328, PLL_DPLL, "dpll", mux_pll_p,
++		     CLK_IS_CRITICAL, RV1103B_PLL_CON(16),
++		     RV1103B_MODE_CON, 0, 10, 0, rv1103b_pll_rates),
++	[gpll] = PLL(pll_rk3328, PLL_GPLL, "gpll", mux_pll_p,
++		     CLK_IS_CRITICAL, RV1103B_PLL_CON(24),
++		     RV1103B_MODE_CON, 0, 10, 0, rv1103b_pll_rates),
++};
++
++#define MFLAGS CLK_MUX_HIWORD_MASK
++#define DFLAGS CLK_DIVIDER_HIWORD_MASK
++#define GFLAGS (CLK_GATE_HIWORD_MASK | CLK_GATE_SET_TO_DISABLE)
++
++static struct rockchip_clk_branch rv1103b_clk_uart0_fracmux __initdata =
++	MUX(SCLK_UART0_SRC, "sclk_uart0_src", sclk_uart0_src_p, CLK_SET_RATE_PARENT,
++			RV1103B_CLKSEL_CON(32), 8, 2, MFLAGS);
++
++static struct rockchip_clk_branch rv1103b_clk_uart1_fracmux __initdata =
++	MUX(SCLK_UART1_SRC, "sclk_uart1_src", sclk_uart1_src_p, CLK_SET_RATE_PARENT,
++			RV1103B_CLKSEL_CON(32), 10, 2, MFLAGS);
++
++static struct rockchip_clk_branch rv1103b_clk_uart2_fracmux __initdata =
++	MUX(SCLK_UART2_SRC, "sclk_uart2_src", sclk_uart2_src_p, CLK_SET_RATE_PARENT,
++			RV1103B_CLKSEL_CON(32), 12, 2, MFLAGS);
++
++static struct rockchip_clk_branch rv1103b_rcdiv_pmu_fracmux __initdata =
++	MUX(CLK_32K, "clk_32k", clk_32k_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
++			RK3568_PMU_CLKSEL_CON(0), 0, 2, MFLAGS);
++
++static struct rockchip_clk_branch rv1103b_clk_branches[] __initdata = {
++
++	/*       Clock Definition       */
++	FACTOR(XIN_OSC0_HALF, "xin_osc0_half", "xin24m", 0, 1, 2),
++
++	COMPOSITE_NOGATE(0, "armclk_gpll", mux_gpll_24m_p, CLK_IS_CRITICAL,
++			RV1103B_CLKSEL_CON(37), 12, 1, MFLAGS, 13, 3, DFLAGS),
++
++	/* pd_top */
++	COMPOSITE_NOMUX(CLK_GPLL_DIV24, "clk_gpll_div24", "gpll", 0,
++			RV1103B_CLKSEL_CON(0), 0, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 0, GFLAGS),
++	COMPOSITE_NOMUX(CLK_GPLL_DIV12, "clk_gpll_div12", "gpll", 0,
++			RV1103B_CLKSEL_CON(0), 5, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 1, GFLAGS),
++	COMPOSITE_NOMUX(CLK_GPLL_DIV6, "clk_gpll_div6", "gpll", 0,
++			RV1103B_CLKSEL_CON(1), 0, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 3, GFLAGS),
++	COMPOSITE_NOMUX(CLK_GPLL_DIV4, "clk_gpll_div4", "gpll", 0,
++			RV1103B_CLKSEL_CON(1), 10, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 5, GFLAGS),
++	COMPOSITE_NOMUX(CLK_GPLL_DIV3, "clk_gpll_div3", "gpll", 0,
++			RV1103B_CLKSEL_CON(2), 0, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 7, GFLAGS),
++	COMPOSITE_NOMUX_HALFDIV(CLK_GPLL_DIV2P5, "clk_gpll_div2p5", "gpll", 0,
++			RV1103B_CLKSEL_CON(2), 5, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 8, GFLAGS),
++	COMPOSITE_NOMUX(CLK_GPLL_DIV2, "clk_gpll_div2", "gpll", 0,
++			RV1103B_CLKSEL_CON(2), 10, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(0), 9, GFLAGS),
++	COMPOSITE_NOMUX(CLK_UART0_SRC, "clk_uart0_src", "gpll", 0,
++			RV1103B_CLKSEL_CON(5), 0, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(1), 0, GFLAGS),
++	COMPOSITE_NOMUX(CLK_UART1_SRC, "clk_uart1_src", "gpll", 0,
++			RV1103B_CLKSEL_CON(5), 5, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(1), 1, GFLAGS),
++	COMPOSITE_NOMUX(CLK_UART2_SRC, "clk_uart2_src", "gpll", 0,
++			RV1103B_CLKSEL_CON(5), 10, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(1), 2, GFLAGS),
++	COMPOSITE_FRACMUX(CLK_UART0_FRAC, "clk_uart0_frac", "clk_uart0_src", 0,
++			RV1103B_CLKSEL_CON(10), CLK_FRAC_DIVIDER_NO_LIMIT,
++			RV1103B_CLKGATE_CON(1), 6, GFLAGS,
++			&rv1103b_clk_uart0_fracmux),
++	COMPOSITE_FRACMUX(CLK_UART1_FRAC, "clk_uart1_frac", "clk_uart1_src", 0,
++			RV1103B_CLKSEL_CON(11), CLK_FRAC_DIVIDER_NO_LIMIT,
++			RV1103B_CLKGATE_CON(1), 7, GFLAGS,
++			&rv1103b_clk_uart1_fracmux),
++	COMPOSITE_FRACMUX(CLK_UART2_FRAC, "clk_uart2_frac", "clk_uart2_src", 0,
++			RV1103B_CLKSEL_CON(12), CLK_FRAC_DIVIDER_NO_LIMIT,
++			RV1103B_CLKGATE_CON(1), 8, GFLAGS,
++			&rv1103b_clk_uart2_fracmux),
++	GATE(SCLK_UART0, "sclk_uart0", "sclk_uart0_src", 0,
++			RV1103B_CLKGATE_CON(3), 3, GFLAGS),
++	GATE(SCLK_UART1, "sclk_uart1", "sclk_uart1_src", 0,
++			RV1103B_CLKGATE_CON(3), 4, GFLAGS),
++	GATE(SCLK_UART2, "sclk_uart2", "sclk_uart2_src", 0,
++			RV1103B_CLKGATE_CON(3), 8, GFLAGS),
++
++	COMPOSITE_NOMUX(CLK_SAI_SRC, "clk_sai_src", "gpll", 0,
++			RV1103B_CLKSEL_CON(20), 0, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(1), 12, GFLAGS),
++	COMPOSITE_FRAC_V2(CLK_SAI_FRAC, "clk_sai_frac", "clk_sai_src", 0,
++			RV1103B_CLKSEL_CON(21), 16, 16,
++			RV1103B_CLK_SAI_FRAC_DIV_HIGH, 8, 8, 0),
++	MUX(MCLK_SAI_SRC, "mclk_sai_src", mclk_sai_src_p, CLK_SET_RATE_PARENT,
++			RV1103B_CLKSEL_CON(35), 10, 2, MFLAGS),
++	GATE(MCLK_SAI, "mclk_sai", "mclk_sai_src", 0,
++			RV1103B_CLKGATE_CON(5), 5, GFLAGS),
++
++	COMPOSITE_NODIV(LSCLK_NPU_SRC, "lsclk_npu_src", mux_200m_100m_p, CLK_IS_CRITICAL,
++			RV1103B_CLKSEL_CON(30), 0, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(2), 0, GFLAGS),
++	COMPOSITE(CLK_NPU_SRC, "clk_npu_src", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(37), 0, 1, MFLAGS, 1, 2, DFLAGS,
++			RV1103B_CLKGATE_CON(5), 12, GFLAGS),
++	COMPOSITE_NODIV(ACLK_VEPU_SRC, "aclk_vepu_src", mux_480m_400m_300m_200m_p, 0,
++			RV1103B_CLKSEL_CON(30), 8, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(2), 4, GFLAGS),
++	COMPOSITE(CLK_VEPU_SRC, "clk_vepu_src", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(37), 4, 1, MFLAGS, 5, 2, DFLAGS,
++			RV1103B_CLKGATE_CON(5), 13, GFLAGS),
++	COMPOSITE_NODIV(ACLK_VI_SRC, "aclk_vi_src", mux_480m_400m_300m_p, CLK_IS_CRITICAL,
++			RV1103B_CLKSEL_CON(30), 12, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(2), 8, GFLAGS),
++	COMPOSITE(CLK_ISP_SRC, "clk_isp_src", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(37), 8, 1, MFLAGS, 9, 2, DFLAGS,
++			RV1103B_CLKGATE_CON(5), 14, GFLAGS),
++	COMPOSITE_NODIV(DCLK_VICAP, "dclk_vicap", mux_300m_200m_p, 0,
++			RV1103B_CLKSEL_CON(30), 14, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(2), 9, GFLAGS),
++	COMPOSITE(CCLK_EMMC, "cclk_emmc", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(31), 15, 1, MFLAGS, 0, 8, DFLAGS,
++			RV1103B_CLKGATE_CON(2), 10, GFLAGS),
++	COMPOSITE(CCLK_SDMMC0, "cclk_sdmmc0", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(32), 15, 1, MFLAGS, 0, 8, DFLAGS,
++			RV1103B_CLKGATE_CON(2), 11, GFLAGS),
++	COMPOSITE(SCLK_SFC_2X, "sclk_sfc_2x", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(33), 15, 1, MFLAGS, 0, 8, DFLAGS,
++			RV1103B_CLKGATE_CON(2), 12, GFLAGS),
++	COMPOSITE_NODIV(LSCLK_PERI_SRC, "lsclk_peri_src", mux_300m_200m_p, CLK_IS_CRITICAL,
++			RV1103B_CLKSEL_CON(31), 9, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(3), 0, GFLAGS),
++	COMPOSITE_NODIV(ACLK_PERI_SRC, "aclk_peri_src", mux_600m_480m_400m_p, CLK_IS_CRITICAL,
++			RV1103B_CLKSEL_CON(31), 10, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(3), 1, GFLAGS),
++	COMPOSITE_NODIV(HCLK_HPMCU, "hclk_hpmcu", mux_400m_300m_p, 0,
++			RV1103B_CLKSEL_CON(31), 12, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(3), 2, GFLAGS),
++		COMPOSITE_NODIV(CLK_I2C_PMU, "clk_i2c_pmu", mux_100m_24m_p, 0,
++			RV1103B_CLKSEL_CON(34), 0, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(4), 0, GFLAGS),
++	COMPOSITE_NODIV(CLK_I2C_PERI, "clk_i2c_peri", mux_200m_24m_p, 0,
++			RV1103B_CLKSEL_CON(34), 1, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(4), 4, GFLAGS),
++	COMPOSITE_NODIV(CLK_SPI0, "clk_spi0", mux_200m_100m_50m_24m_p, 0,
++			RV1103B_CLKSEL_CON(34), 2, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(4), 5, GFLAGS),
++	COMPOSITE_NODIV(CLK_PWM0_SRC, "clk_pwm0_src", mux_100m_24m_p, 0,
++			RV1103B_CLKSEL_CON(34), 12, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(4), 10, GFLAGS),
++	COMPOSITE_NODIV(CLK_PWM1, "clk_pwm1", mux_100m_24m_p, 0,
++			RV1103B_CLKSEL_CON(34), 13, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(4), 11, GFLAGS),
++	COMPOSITE_NODIV(CLK_PWM2, "clk_pwm2", mux_100m_24m_p, 0,
++			RV1103B_CLKSEL_CON(34), 14, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(4), 12, GFLAGS),
++	COMPOSITE_NODIV(DCLK_DECOM_SRC, "dclk_decom_src", mux_480m_400m_300m_p, 0,
++			RV1103B_CLKSEL_CON(35), 0, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(5), 0, GFLAGS),
++	COMPOSITE(CCLK_SDMMC1, "cclk_sdmmc1", mux_gpll_24m_p, 0,
++			RV1103B_CLKSEL_CON(36), 15, 1, MFLAGS, 0, 8, DFLAGS,
++			RV1103B_CLKGATE_CON(5), 1, GFLAGS),
++	COMPOSITE_NODIV(CLK_CORE_CRYPTO, "clk_core_crypto", mux_300m_200m_100m_p, 0,
++			RV1103B_CLKSEL_CON(35), 2, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(5), 2, GFLAGS),
++	COMPOSITE_NODIV(CLK_PKA_CRYPTO, "clk_pka_crypto", mux_300m_200m_100m_p, 0,
++			RV1103B_CLKSEL_CON(35), 4, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(5), 3, GFLAGS),
++	COMPOSITE_NODIV(CLK_CORE_RGA, "clk_core_rga", mux_400m_300m_p, 0,
++			RV1103B_CLKSEL_CON(35), 8, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(5), 4, GFLAGS),
++
++	GATE(PCLK_TOP_ROOT, "pclk_top_root", "clk_gpll_div12", CLK_IS_CRITICAL,
++			RV1103B_CLKGATE_CON(6), 0, GFLAGS),
++	COMPOSITE_NOMUX(CLK_REF_MIPI0, "clk_ref_mipi0", "clk_gpll_div2", 0,
++			RV1103B_CLKSEL_CON(40), 0, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(6), 3, GFLAGS),
++	COMPOSITE_NODIV(CLK_MIPI0_OUT2IO, "clk_mipi0_out2io", clk_mipi0_out2io_p, CLK_SET_RATE_PARENT,
++			RV1103B_CLKSEL_CON(40), 6, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(6), 4, GFLAGS),
++	COMPOSITE_NOMUX(CLK_REF_MIPI1, "clk_ref_mipi1", "clk_gpll_div2", 0,
++			RV1103B_CLKSEL_CON(40), 8, 5, DFLAGS,
++			RV1103B_CLKGATE_CON(6), 5, GFLAGS),
++	COMPOSITE_NODIV(CLK_MIPI1_OUT2IO, "clk_mipi1_out2io", clk_mipi1_out2io_p, CLK_SET_RATE_PARENT,
++			RV1103B_CLKSEL_CON(40), 14, 1, MFLAGS,
++			RV1103B_CLKGATE_CON(6), 6, GFLAGS),
++	COMPOSITE(MCLK_SAI_OUT2IO, "mclk_sai_out2io", mclk_sai_out2io_p, 0,
++			RV1103B_CLKSEL_CON(41), 7, 1, MFLAGS, 13, 3, DFLAGS,
++			RV1103B_CLKGATE_CON(6), 9, GFLAGS),
++
++	/* pd_vpu */
++	COMPOSITE_NODIV(ACLK_NPU_ROOT, "aclk_npu_root", aclk_npu_root_p, CLK_SET_RATE_PARENT | CLK_OPS_PARENT_ENABLE,
++			RV1103B_NPUCLKSEL_CON(0), 1, 1, MFLAGS,
++			RV1103B_NPUCLKGATE_CON(0), 1, GFLAGS),
++	GATE(HCLK_RKNN, "hclk_rknn", "lsclk_npu_src", 0,
++			RV1103B_NPUCLKGATE_CON(0), 4, GFLAGS),
++	GATE(ACLK_RKNN, "aclk_rknn", "aclk_npu_root", 0,
++			RV1103B_NPUCLKGATE_CON(0), 5, GFLAGS),
++
++	/* pd_vepu */
++	COMPOSITE_NOMUX(LSCLK_VEPU_ROOT, "lsclk_vepu_root", "aclk_vepu_src", CLK_IS_CRITICAL,
++			RV1103B_VEPUCLKSEL_CON(0), 2, 2, DFLAGS,
++			RV1103B_VEPUCLKGATE_CON(0), 0, GFLAGS),
++	GATE(HCLK_VEPU, "hclk_vepu", "lsclk_vepu_root", 0,
++			RV1103B_VEPUCLKGATE_CON(0), 4, GFLAGS),
++	GATE(ACLK_VEPU, "aclk_vepu", "aclk_vepu_src", 0,
++			RV1103B_VEPUCLKGATE_CON(0), 5, GFLAGS),
++	COMPOSITE_NODIV(CLK_CORE_VEPU, "clk_core_vepu", clk_core_vepu_p, 0,
++			RV1103B_VEPUCLKSEL_CON(0), 1, 1, MFLAGS,
++			RV1103B_VEPUCLKGATE_CON(0), 6, GFLAGS),
++	GATE(PCLK_ACODEC, "pclk_acodec", "lsclk_vepu_root", 0,
++			RV1103B_VEPUCLKGATE_CON(0), 13, GFLAGS),
++	GATE(PCLK_USBPHY, "pclk_usbphy", "lsclk_vepu_root", 0,
++			RV1103B_VEPUCLKGATE_CON(0), 14, GFLAGS),
++
++	/* pd_vi */
++	FACTOR(LSCLK_VI_100M, "lsclk_vi_100m", "clk_gpll_div6", 0, 1, 2),
++	COMPOSITE_NODIV(LSCLK_VI_ROOT, "lsclk_vi_root", lsclk_vi_root_p, CLK_IS_CRITICAL,
++			RV1103B_VICLKSEL_CON(0), 3, 1, MFLAGS,
++			RV1103B_VICLKGATE_CON(0), 0, GFLAGS),
++	GATE(HCLK_ISP, "hclk_isp", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(0), 4, GFLAGS),
++	GATE(ACLK_ISP, "aclk_isp", "aclk_vi_src", 0,
++			RV1103B_VICLKGATE_CON(0), 5, GFLAGS),
++	COMPOSITE_NODIV(CLK_CORE_ISP, "clk_core_isp", clk_core_isp_p, 0,
++			RV1103B_VICLKSEL_CON(0), 1, 1, MFLAGS,
++			RV1103B_VICLKGATE_CON(0), 6, GFLAGS),
++	GATE(ACLK_VICAP, "aclk_vicap", "aclk_vi_src", 0,
++			RV1103B_VICLKGATE_CON(1), 2, GFLAGS),
++	GATE(HCLK_VICAP, "hclk_vicap", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(1), 3, GFLAGS),
++	GATE(ISP0CLK_VICAP, "isp0clk_vicap", "clk_core_isp", 0,
++			RV1103B_VICLKGATE_CON(1), 8, GFLAGS),
++	GATE(PCLK_CSI2HOST0, "pclk_csi2host0", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(1), 9, GFLAGS),
++	GATE(PCLK_CSI2HOST1, "pclk_csi2host1", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(1), 11, GFLAGS),
++	GATE(HCLK_EMMC, "hclk_emmc", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(1), 13, GFLAGS),
++	GATE(HCLK_SFC, "hclk_sfc", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(1), 14, GFLAGS),
++	GATE(HCLK_SFC_XIP, "hclk_sfc_xip", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(1), 15, GFLAGS),
++	GATE(HCLK_SDMMC0, "hclk_sdmmc0", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(2), 0, GFLAGS),
++	GATE(PCLK_CSIPHY, "pclk_csiphy", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(2), 2, GFLAGS),
++	GATE(PCLK_GPIO1, "pclk_gpio1", "lsclk_vi_root", 0,
++			RV1103B_VICLKGATE_CON(2), 3, GFLAGS),
++	GATE(DBCLK_GPIO1, "dbclk_gpio1", "xin24m", 0,
++			RV1103B_VICLKGATE_CON(2), 4, GFLAGS),
++
++	/* pd_ddr */
++	GATE(LSCLK_DDR_ROOT, "lsclk_ddr_root", "clk_gpll_div12", CLK_IS_CRITICAL,
++			RV1103B_DDRCLKGATE_CON(0), 0, GFLAGS),
++	GATE(CLK_TIMER_DDRMON, "clk_timer_ddrmon", "xin24m", 0,
++			RV1103B_DDRCLKGATE_CON(0), 4, GFLAGS),
++	FACTOR(0, "sclk_ddr", "dpll", 0, 1, 2),
++
++	/* pd_pmu */
++	COMPOSITE(LSCLK_PMU_ROOT, "lsclk_pmu_root", lsclk_pmu_root_p, CLK_IS_CRITICAL,
++			RV1103B_PMUCLKSEL_CON(2), 4, 1, MFLAGS, 0, 2, DFLAGS,
++			RV1103B_PMUCLKGATE_CON(0), 0, GFLAGS),
++	GATE(PCLK_PMU, "pclk_pmu", "lsclk_pmu_root", CLK_IS_CRITICAL,
++			RV1103B_PMUCLKGATE_CON(0), 2, GFLAGS),
++	MUX(XIN_RC_SRC, "xin_rc_src", xin_rc_div_p, 0,
++			RV1103B_PMUCLKSEL_CON(0), 2, 1, MFLAGS),
++	COMPOSITE_FRACMUX(XIN_RC_DIV, "xin_rc_div", "xin_rc_src", CLK_SET_RATE_PARENT | CLK_IS_CRITICAL,
++			RV1103B_PMUCLKSEL_CON(1), 0,
++			RV1103B_PMUCLKGATE_CON(0), 3, GFLAGS,
++			&rv1103b_rcdiv_pmu_fracmux),
++	GATE(PCLK_PMU_GPIO0, "pclk_pmu_gpio0", "lsclk_pmu_root", 0,
++			RV1103B_PMUCLKGATE_CON(0), 4, GFLAGS),
++	COMPOSITE_NODIV(DBCLK_PMU_GPIO0, "dbclk_pmu_gpio0", dbclk_pmu_gpio0_p, 0,
++			RK3568_PMU_CLKSEL_CON(0), 3, 1, MFLAGS,
++			RV1103B_PMUCLKGATE_CON(0), 5, GFLAGS),
++	GATE(PCLK_PWM0, "pclk_pwm0", "lsclk_pmu_root", 0,
++			RV1103B_PMUCLKGATE_CON(2), 0, GFLAGS),
++	GATE(CLK_PWM0, "clk_pwm0", "clk_pwm0_src", 0,
++			RV1103B_PMUCLKGATE_CON(2), 1, GFLAGS),
++	GATE(CLK_OSC_PWM0, "clk_osc_pwm0", "xin24m", 0,
++			RV1103B_PMUCLKGATE_CON(2), 2, GFLAGS),
++	GATE(CLK_RC_PWM0, "clk_rc_pwm0", "clk_32k", 0,
++			RV1103B_PMUCLKGATE_CON(2), 3, GFLAGS),
++	GATE(PCLK_I2C0, "pclk_i2c0", "lsclk_pmu_root", 0,
++			RV1103B_PMUCLKGATE_CON(0), 12, GFLAGS),
++	GATE(CLK_I2C0, "clk_i2c0", "clk_i2c_pmu", 0,
++			RV1103B_PMUCLKGATE_CON(0), 13, GFLAGS),
++	GATE(PCLK_UART0, "pclk_uart0", "lsclk_pmu_root", 0,
++			RV1103B_PMUCLKGATE_CON(0), 14, GFLAGS),
++	GATE(CLK_REFOUT, "clk_refout", "xin24m", 0,
++			RV1103B_PMUCLKGATE_CON(1), 4, GFLAGS),
++	GATE(CLK_PREROLL, "clk_preroll", "lsclk_pmu_root", 0,
++			RV1103B_PMUCLKGATE_CON(1), 6, GFLAGS),
++	GATE(CLK_PREROLL_32K, "clk_preroll_32k", "clk_32k", 0,
++			RV1103B_PMUCLKGATE_CON(1), 7, GFLAGS),
++	GATE(CLK_LPMCU_PMU, "clk_lpmcu_pmu", "lsclk_pmu_root", 0,
++			RV1103B_PMUCLKGATE_CON(2), 12, GFLAGS),
++
++	/* pd_pmu1 */
++	GATE(PCLK_SPI2AHB, "pclk_spi2ahb", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 0, GFLAGS),
++	GATE(HCLK_SPI2AHB, "hclk_spi2ahb", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 1, GFLAGS),
++	GATE(PCLK_WDT_LPMCU, "pclk_wdt_lpmcu", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 9, GFLAGS),
++	GATE(TCLK_WDT_LPMCU, "tclk_wdt_lpmcu", "xin24m", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 10, GFLAGS),
++	GATE(HCLK_SFC_PMU1, "hclk_sfc_pmu1", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 12, GFLAGS),
++	GATE(HCLK_SFC_XIP_PMU1, "hclk_sfc_xip_pmu1", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 13, GFLAGS),
++	COMPOSITE_NODIV(SCLK_SFC_2X_PMU1, "sclk_sfc_2x_pmu1", sclk_sfc_2x_pmu1_p, 0,
++			RV1103B_PMU1CLKSEL_CON(0), 8, 1, MFLAGS,
++			RV1103B_PMU1CLKGATE_CON(0), 14, GFLAGS),
++	GATE(CLK_LPMCU, "clk_lpmcu", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(1), 0, GFLAGS),
++	GATE(CLK_LPMCU_RTC, "clk_lpmcu_rtc", "xin24m", 0,
++			RV1103B_PMU1CLKGATE_CON(1), 4, GFLAGS),
++	GATE(PCLK_LPMCU_MAILBOX, "pclk_lpmcu_mailbox", "lsclk_pmu_root", 0,
++			RV1103B_PMU1CLKGATE_CON(1), 8, GFLAGS),
++
++	/* pd_peri */
++	COMPOSITE_NOMUX(PCLK_PERI_ROOT, "pclk_peri_root", "lsclk_peri_src", CLK_IS_CRITICAL,
++			RV1103B_PERICLKSEL_CON(0), 0, 2, DFLAGS,
++			RV1103B_PERICLKGATE_CON(0), 0, GFLAGS),
++	COMPOSITE_NOMUX(PCLK_RTC_ROOT, "pclk_rtc_root", "lsclk_peri_src", CLK_IS_CRITICAL,
++			RV1103B_PERICLKSEL_CON(2), 12, 4, DFLAGS,
++			RV1103B_PERICLKGATE_CON(0), 8, GFLAGS),
++	GATE(CLK_TIMER_ROOT, "clk_timer_root", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(0), 1, GFLAGS),
++	GATE(PCLK_TIMER, "pclk_timer", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 0, GFLAGS),
++	GATE(CLK_TIMER0, "clk_timer0", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 1, GFLAGS),
++	GATE(CLK_TIMER1, "clk_timer1", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 2, GFLAGS),
++	GATE(CLK_TIMER2, "clk_timer2", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 3, GFLAGS),
++	GATE(CLK_TIMER3, "clk_timer3", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 4, GFLAGS),
++	GATE(CLK_TIMER4, "clk_timer4", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 5, GFLAGS),
++	GATE(CLK_TIMER5, "clk_timer5", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 6, GFLAGS),
++	GATE(PCLK_STIMER, "pclk_stimer", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 7, GFLAGS),
++	GATE(CLK_STIMER0, "clk_stimer0", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 8, GFLAGS),
++	GATE(CLK_STIMER1, "clk_stimer1", "clk_timer_root", 0,
++			RV1103B_PERICLKGATE_CON(1), 9, GFLAGS),
++	GATE(PCLK_WDT_NS, "pclk_wdt_ns", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 0, GFLAGS),
++	GATE(TCLK_WDT_NS, "tclk_wdt_ns", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(2), 1, GFLAGS),
++	GATE(PCLK_WDT_S, "pclk_wdt_s", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 2, GFLAGS),
++	GATE(TCLK_WDT_S, "tclk_wdt_s", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(2), 3, GFLAGS),
++	GATE(PCLK_WDT_HPMCU, "pclk_wdt_hpmcu", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 4, GFLAGS),
++	GATE(TCLK_WDT_HPMCU, "tclk_wdt_hpmcu", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(2), 5, GFLAGS),
++	GATE(PCLK_I2C1, "pclk_i2c1", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 6, GFLAGS),
++	GATE(CLK_I2C1, "clk_i2c1", "clk_i2c_peri", 0,
++			RV1103B_PERICLKGATE_CON(2), 7, GFLAGS),
++	GATE(PCLK_I2C2, "pclk_i2c2", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 8, GFLAGS),
++	GATE(CLK_I2C2, "clk_i2c2", "clk_i2c_peri", 0,
++			RV1103B_PERICLKGATE_CON(2), 9, GFLAGS),
++	GATE(PCLK_I2C3, "pclk_i2c3", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 10, GFLAGS),
++	GATE(CLK_I2C3, "clk_i2c3", "clk_i2c_peri", 0,
++			RV1103B_PERICLKGATE_CON(2), 11, GFLAGS),
++	GATE(PCLK_I2C4, "pclk_i2c4", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(2), 12, GFLAGS),
++	GATE(CLK_I2C4, "clk_i2c4", "clk_i2c_peri", 0,
++			RV1103B_PERICLKGATE_CON(2), 13, GFLAGS),
++	GATE(PCLK_SPI0, "pclk_spi0", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(3), 10, GFLAGS),
++	GATE(PCLK_PWM1, "pclk_pwm1", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(4), 6, GFLAGS),
++	GATE(CLK_OSC_PWM1, "clk_osc_pwm1", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(4), 8, GFLAGS),
++	GATE(PCLK_PWM2, "pclk_pwm2", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(4), 12, GFLAGS),
++	GATE(CLK_OSC_PWM2, "clk_osc_pwm2", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(4), 13, GFLAGS),
++	GATE(PCLK_UART2, "pclk_uart2", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(3), 0, GFLAGS),
++	GATE(PCLK_UART1, "pclk_uart1", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(3), 2, GFLAGS),
++	GATE(ACLK_RKDMA, "aclk_rkdma", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(5), 8, GFLAGS),
++	GATE(PCLK_TSADC, "pclk_tsadc", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(5), 9, GFLAGS),
++	COMPOSITE_NOMUX(CLK_TSADC, "clk_tsadc", "xin24m", 0,
++			RV1103B_PERICLKSEL_CON(0), 4, 5, DFLAGS,
++			RV1103B_PERICLKGATE_CON(5), 10, GFLAGS),
++	COMPOSITE_NOMUX(CLK_TSADC_TSEN, "clk_tsadc_tsen", "xin24m", 0,
++			RV1103B_PERICLKSEL_CON(0), 10, 5, DFLAGS,
++			RV1103B_PERICLKGATE_CON(5), 11, GFLAGS),
++	GATE(PCLK_SARADC, "pclk_saradc", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(5), 12, GFLAGS),
++	COMPOSITE_NOMUX(CLK_SARADC, "clk_saradc", "xin24m", 0,
++			RV1103B_PERICLKSEL_CON(1), 0, 3, DFLAGS,
++			RV1103B_PERICLKGATE_CON(5), 13, GFLAGS),
++	GATE(PCLK_GPIO2, "pclk_gpio2", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(6), 3, GFLAGS),
++	GATE(DBCLK_GPIO2, "dbclk_gpio2", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(6), 4, GFLAGS),
++	GATE(ACLK_USBOTG, "aclk_usbotg", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(6), 9, GFLAGS),
++	GATE(CLK_REF_USBOTG, "clk_ref_usbotg", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(6), 10, GFLAGS),
++	GATE(HCLK_SDMMC1, "hclk_sdmmc1", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(7), 0, GFLAGS),
++	GATE(HCLK_SAI, "hclk_sai", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(7), 1, GFLAGS),
++	GATE(ACLK_CRYPTO, "aclk_crypto", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(8), 2, GFLAGS),
++	GATE(HCLK_CRYPTO, "hclk_crypto", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(8), 3, GFLAGS),
++	GATE(HCLK_RK_RNG_S, "hclk_rk_rng_s", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(8), 5, GFLAGS),
++	GATE(HCLK_RK_RNG_NS, "hclk_rk_rng_ns", "hclk_rk_rng_s", 0,
++			RV1103B_PERICLKGATE_CON(8), 4, GFLAGS),
++	GATE(PCLK_OTPC_NS, "pclk_otpc_ns", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(8), 6, GFLAGS),
++	GATE(CLK_OTPC_ROOT_NS, "clk_otpc_root_ns", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(8), 7, GFLAGS),
++	GATE(CLK_SBPI_OTPC_NS, "clk_sbpi_otpc_ns", "clk_otpc_root_ns", 0,
++			RV1103B_PERICLKGATE_CON(8), 8, GFLAGS),
++	COMPOSITE_NOMUX(CLK_USER_OTPC_NS, "clk_user_otpc_ns", "clk_otpc_root_ns", 0,
++			RV1103B_PERICLKSEL_CON(1), 4, 3, DFLAGS,
++			RV1103B_PERICLKGATE_CON(8), 9, GFLAGS),
++	GATE(PCLK_OTPC_S, "pclk_otpc_s", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(8), 10, GFLAGS),
++	GATE(CLK_OTPC_ROOT_S, "clk_otpc_root_s", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(8), 11, GFLAGS),
++	GATE(CLK_SBPI_OTPC_S, "clk_sbpi_otpc_s", "clk_otpc_root_s", 0,
++			RV1103B_PERICLKGATE_CON(8), 12, GFLAGS),
++	COMPOSITE_NOMUX(CLK_USER_OTPC_S, "clk_user_otpc_s", "clk_otpc_root_s", 0,
++			RV1103B_PERICLKSEL_CON(1), 8, 3, DFLAGS,
++			RV1103B_PERICLKGATE_CON(8), 13, GFLAGS),
++	GATE(PCLK_OTP_MASK, "pclk_otp_mask", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(8), 15, GFLAGS),
++	GATE(HCLK_RGA, "hclk_rga", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(9), 0, GFLAGS),
++	GATE(ACLK_RGA, "aclk_rga", "aclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(9), 1, GFLAGS),
++	GATE(ACLK_MAC, "aclk_mac", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(9), 3, GFLAGS),
++	GATE(PCLK_MAC, "pclk_mac", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(9), 4, GFLAGS),
++	GATE(CLK_MACPHY, "clk_macphy", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(9), 11, GFLAGS),
++	GATE(ACLK_SPINLOCK, "aclk_spinlock", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(10), 0, GFLAGS),
++	GATE(HCLK_CACHE, "hclk_cache", "hclk_hpmcu", 0,
++			RV1103B_PERICLKGATE_CON(10), 1, GFLAGS),
++	GATE(PCLK_HPMCU_MAILBOX, "pclk_hpmcu_mailbox", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(10), 2, GFLAGS),
++	GATE(PCLK_HPMCU_INTMUX, "pclk_hpmcu_intmux", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(10), 3, GFLAGS),
++	GATE(CLK_HPMCU, "clk_hpmcu", "hclk_hpmcu", 0,
++			RV1103B_PERICLKGATE_CON(10), 4, GFLAGS),
++	GATE(CLK_HPMCU_RTC, "clk_hpmcu_rtc", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(10), 8, GFLAGS),
++	GATE(DCLK_DECOM, "dclk_decom", "dclk_decom_src", 0,
++			RV1103B_PERICLKGATE_CON(11), 0, GFLAGS),
++	GATE(ACLK_DECOM, "aclk_decom", "aclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(11), 1, GFLAGS),
++	GATE(PCLK_DECOM, "pclk_decom", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(11), 2, GFLAGS),
++	GATE(ACLK_SYS_SRAM, "aclk_sys_sram", "lsclk_peri_src", CLK_IS_CRITICAL,
++			RV1103B_PERICLKGATE_CON(11), 3, GFLAGS),
++	GATE(PCLK_DMA2DDR, "pclk_dma2ddr", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(11), 4, GFLAGS),
++	GATE(ACLK_DMA2DDR, "aclk_dma2ddr", "aclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(11), 5, GFLAGS),
++	GATE(PCLK_DCF, "pclk_dcf", "pclk_peri_root", 0,
++			RV1103B_PERICLKGATE_CON(11), 6, GFLAGS),
++	GATE(ACLK_DCF, "aclk_dcf", "lsclk_peri_src", 0,
++			RV1103B_PERICLKGATE_CON(11), 7, GFLAGS),
++	COMPOSITE_NOMUX(MCLK_ACODEC_TX, "mclk_acodec_tx", "mclk_sai_src", 0,
++			RV1103B_PERICLKSEL_CON(2), 0, 3, DFLAGS,
++			RV1103B_PERICLKGATE_CON(11), 9, GFLAGS),
++	GATE(CLK_REF_USBPHY, "clk_ref_usbphy", "xin24m", 0,
++			RV1103B_PERICLKGATE_CON(11), 12, GFLAGS),
++
++	/* io */
++	COMPOSITE_NODIV(CLK_FREQ_PWM0_SRC, "clk_freq_pwm0_src", clk_freq_pwm0_src_p, 0,
++			RV1103B_CLKSEL_CON(35), 12, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(5), 6, GFLAGS),
++	GATE(CLK_FREQ_PWM0, "clk_freq_pwm0", "clk_freq_pwm0_src", 0,
++			RV1103B_PMUCLKGATE_CON(2), 4, GFLAGS),
++	COMPOSITE_NODIV(CLK_COUNTER_PWM0_SRC, "clk_counter_pwm0_src", clk_counter_pwm0_src_p, 0,
++			RV1103B_CLKSEL_CON(35), 14, 2, MFLAGS,
++			RV1103B_CLKGATE_CON(5), 7, GFLAGS),
++	GATE(CLK_COUNTER_PWM0, "clk_counter_pwm0", "clk_counter_pwm0_src", 0,
++			RV1103B_PMUCLKGATE_CON(2), 5, GFLAGS),
++	GATE(SCLK_SPI2AHB, "sclk_spi2ahb", "sclk_spi2ahb_io", 0,
++			RV1103B_PMU1CLKGATE_CON(0), 2, GFLAGS),
++	GATE(CLK_UTMI_USBOTG, "clk_utmi_usbotg", "clk_utmi_usbotg_io", 0,
++			RV1103B_PERICRU_IP_CON, 14, GFLAGS),
++};
++
++static struct rockchip_clk_branch rv1103b_armclk __initdata =
++	MUX(ARMCLK, "armclk", mux_armclk_p, CLK_IS_CRITICAL | CLK_SET_RATE_PARENT,
++			RV1103B_CORECLKSEL_CON(0), 1, 1, MFLAGS);
++
++static void __iomem *rv1103b_cru_base;
++static struct rockchip_clk_provider *cru_ctx;
++
++void rv1103b_dump_cru(void)
++{
++	if (rv1103b_cru_base) {
++		pr_warn("CRU:\n");
++		print_hex_dump(KERN_WARNING, "", DUMP_PREFIX_OFFSET,
++			       32, 4, rv1103b_cru_base,
++			       0x588, false);
++	}
++}
++EXPORT_SYMBOL_GPL(rv1103b_dump_cru);
++
++static int rv1103b_clk_panic(struct notifier_block *this,
++			     unsigned long ev, void *ptr)
++{
++	rv1103b_dump_cru();
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block rv1103b_clk_panic_block = {
++	.notifier_call = rv1103b_clk_panic,
++};
++
++static void __init rv1103b_clk_init(struct device_node *np)
++{
++	struct rockchip_clk_provider *ctx;
++	void __iomem *reg_base;
++
++	reg_base = of_iomap(np, 0);
++	if (!reg_base) {
++		pr_err("%s: could not map cru region\n", __func__);
++		return;
++	}
++
++	rv1103b_cru_base = reg_base;
++
++	ctx = rockchip_clk_init(np, reg_base, CLK_NR_CLKS);
++	if (IS_ERR(ctx)) {
++		pr_err("%s: rockchip clk init failed\n", __func__);
++		iounmap(reg_base);
++		return;
++	}
++	cru_ctx = ctx;
++
++	rockchip_clk_register_plls(ctx, rv1103b_pll_clks,
++				   ARRAY_SIZE(rv1103b_pll_clks),
++				   RV1103B_GRF_SOC_STATUS0);
++
++	rockchip_clk_register_branches(ctx, rv1103b_clk_branches,
++				       ARRAY_SIZE(rv1103b_clk_branches));
++
++	rockchip_clk_register_armclk_v2(ctx, &rv1103b_armclk,
++					rv1103b_cpuclk_rates,
++					ARRAY_SIZE(rv1103b_cpuclk_rates));
++
++	rockchip_register_softrst(np, CLK_NR_SRST, reg_base + RV1103B_PERISOFTRST_CON(0),
++				  ROCKCHIP_SOFTRST_HIWORD_MASK);
++
++	rockchip_register_restart_notifier(ctx, RV1103B_GLB_SRST_FST, NULL);
++
++	rockchip_clk_of_add_provider(np, ctx);
++
++	atomic_notifier_chain_register(&panic_notifier_list,
++				       &rv1103b_clk_panic_block);
++	if (!rk_dump_cru)
++		rk_dump_cru = rv1103b_dump_cru;
++
++	/* pvtpll src init */
++	writel_relaxed(PVTPLL_SRC_SEL_PVTPLL, reg_base + RV1103B_CORECLKSEL_CON(0));
++	writel_relaxed(PVTPLL_SRC_SEL_PVTPLL, reg_base + RV1103B_NPUCLKSEL_CON(0));
++	writel_relaxed(PVTPLL_SRC_SEL_PVTPLL, reg_base + RV1103B_VICLKSEL_CON(0));
++	writel_relaxed(PVTPLL_SRC_SEL_PVTPLL, reg_base + RV1103B_VEPUCLKSEL_CON(0));
++}
++
++CLK_OF_DECLARE(rv1103b_cru, "rockchip,rv1103b-cru", rv1103b_clk_init);
++
++#ifdef MODULE
++struct clk_rv1103b_inits {
++	void (*inits)(struct device_node *np);
++};
++
++static const struct clk_rv1103b_inits clk_rv1103b_init = {
++	.inits = rv1103b_clk_init,
++};
++
++static const struct of_device_id clk_rv1103b_match_table[] = {
++	{
++		.compatible = "rockchip,rv1103b-cru",
++		.data = &clk_rv1103b_init,
++	},
++	{ }
++};
++MODULE_DEVICE_TABLE(of, clk_rv1103b_match_table);
++
++static int __init clk_rv1103b_probe(struct platform_device *pdev)
++{
++	struct device_node *np = pdev->dev.of_node;
++	const struct of_device_id *match;
++	const struct clk_rv1103b_inits *init_data;
++
++	match = of_match_device(clk_rv1103b_match_table, &pdev->dev);
++	if (!match || !match->data)
++		return -EINVAL;
++
++	init_data = match->data;
++	if (init_data->inits)
++		init_data->inits(np);
++
++	return 0;
++}
++
++static struct platform_driver clk_rv1103b_driver = {
++	.driver		= {
++		.name	= "clk-rv1103b",
++		.of_match_table = clk_rv1103b_match_table,
++	},
++};
++builtin_platform_driver_probe(clk_rv1103b_driver, clk_rv1103b_probe);
++
++MODULE_DESCRIPTION("Rockchip RV1103B Clock Driver");
++MODULE_LICENSE("GPL");
++#endif /* MODULE */
+diff --git a/drivers/clk/rockchip/clk-rv1106.c b/drivers/clk/rockchip/clk-rv1106.c
+index 0833bf2ad..afbbfff2f 100644
+--- a/drivers/clk/rockchip/clk-rv1106.c
++++ b/drivers/clk/rockchip/clk-rv1106.c
+@@ -769,7 +769,7 @@ static struct rockchip_clk_branch rv1106_clk_branches[] __initdata = {
+ 			RV1106_SUBDDRCLKGATE_CON(0), 1, GFLAGS),
+ 	GATE(CLK_CORE_DDRC, "clk_core_ddrc", "clk_core_ddrc_src", CLK_IS_CRITICAL,
+ 			RV1106_SUBDDRCLKGATE_CON(0), 3, GFLAGS),
+-
++	FACTOR(0, "sclk_ddr", "dpll", 0, 1, 1),
+ 
+ 	/* PD_VEPU */
+ 	COMPOSITE_NODIV(HCLK_VEPU_ROOT, "hclk_vepu_root", mux_200m_100m_50m_24m_p, CLK_IS_CRITICAL,
+@@ -891,8 +891,6 @@ static struct rockchip_clk_branch rv1106_clk_branches[] __initdata = {
+ 			RV1106_VOCLKSEL_CON(2), 1, 6, DFLAGS),
+ 	GATE(CLK_MACPHY, "clk_macphy", "xin24m", 0,
+ 			RV1106_VOCLKGATE_CON(2), 13, GFLAGS),
+-	GATE(CLK_OTPC_ARB, "clk_otpc_arb", "xin24m", 0,
+-			RV1106_VOCLKGATE_CON(2), 11, GFLAGS),
+ 	GATE(PCLK_OTPC_NS, "pclk_otpc_ns", "pclk_vo_root", 0,
+ 			RV1106_VOCLKGATE_CON(2), 3, GFLAGS),
+ 	GATE(CLK_SBPI_OTPC_NS, "clk_sbpi_otpc_ns", "xin24m", 0,
+@@ -902,15 +900,11 @@ static struct rockchip_clk_branch rv1106_clk_branches[] __initdata = {
+ 			RV1106_VOCLKGATE_CON(2), 6, GFLAGS),
+ 	GATE(PCLK_OTPC_S, "pclk_otpc_s", "pclk_vo_root", 0,
+ 			RV1106_VOCLKGATE_CON(2), 7, GFLAGS),
+-	GATE(CLK_SBPI_OTPC_S, "clk_sbpi_otpc_s", "xin24m", 0,
+-			RV1106_VOCLKGATE_CON(2), 9, GFLAGS),
+ 	COMPOSITE_NOMUX(CLK_USER_OTPC_S, "clk_user_otpc_s", "xin24m", 0,
+ 			RV1106_VOCLKSEL_CON(3), 13, 3, DFLAGS,
+ 			RV1106_VOCLKGATE_CON(2), 10, GFLAGS),
+ 	GATE(PCLK_OTP_MASK, "pclk_otp_mask", "pclk_vo_root", 0,
+ 			RV1106_VOCLKGATE_CON(2), 14, GFLAGS),
+-	GATE(CLK_PMC_OTP, "clk_pmc_otp", "clk_sbpi_otpc_s", 0,
+-			RV1106_VOCLKGATE_CON(2), 15, GFLAGS),
+ 	GATE(HCLK_RGA2E, "hclk_rga2e", "hclk_vo_root", 0,
+ 			RV1106_VOCLKGATE_CON(0), 7, GFLAGS),
+ 	GATE(ACLK_RGA2E, "aclk_rga2e", "aclk_vo_root", 0,
+@@ -1007,12 +1001,16 @@ static void _cru_pvtpll_calibrate(int count_offset, int length_offset, int targe
+ 	writel_relaxed(val, rv1106_cru_base + length_offset);
+ 	usleep_range(2000, 2100);
+ 	rate1 = readl_relaxed(rv1106_cru_base + count_offset);
+-	if ((rate1 < target_rate) || (rate1 >= rate0))
++	if (rate1 < target_rate)
+ 		return;
+ 	if (abs(rate1 - target_rate) < (target_rate >> 5))
+ 		return;
+ 
++	if (rate1 < rate0)
+ 	step = rate0 - rate1;
++	else
++		step = 5;
++	step = max_t(unsigned int, step, 5);
+ 	delta = rate1 - target_rate;
+ 	length += delta / step;
+ 	val = HIWORD_UPDATE(length, PVTPLL_LENGTH_SEL_MASK, PVTPLL_LENGTH_SEL_SHIFT);
+@@ -1135,7 +1133,7 @@ static void rockchip_rv1106_pvtpll_init(struct rockchip_clk_provider *ctx)
+ 	writel_relaxed(0xffff0004, ctx->reg_base + CRU_PVTPLL1_CON2_H);
+ 	writel_relaxed(0x00030003, ctx->reg_base + CRU_PVTPLL1_CON0_L);
+ 
+-	schedule_delayed_work(&pvtpll_calibrate_work, msecs_to_jiffies(3000));
++	queue_delayed_work(system_freezable_wq, &pvtpll_calibrate_work, msecs_to_jiffies(300));
+ }
+ 
+ static int rv1106_clk_panic(struct notifier_block *this,
+-- 
+2.53.0
+

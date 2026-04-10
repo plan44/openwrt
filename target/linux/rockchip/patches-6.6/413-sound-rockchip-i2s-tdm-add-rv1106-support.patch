@@ -1,0 +1,26 @@
+From: Claude Sonnet 4.6 <noreply@anthropic.com>
+Date: Wed, 9 Apr 2026 00:00:00 +0000
+Subject: [PATCH] sound/soc/rockchip: add rv1106 i2s-tdm compatible
+
+The rv1106/rv1103 SoC uses the same i2s-tdm controller as rv1126 but
+doesn't require the rv1126 soc_data (softrst/grf config). Without a match
+table entry the i2s driver never binds to ffae0000.i2s, which causes
+asoc-simple-card to loop forever on -EPROBE_DEFER waiting for the DAI
+component to appear.
+
+Match with NULL .data, consistent with rk3588 and the vendor 5.10 kernel
+which also has no soc_data for rv1106.
+
+---
+ sound/soc/rockchip/rockchip_i2s_tdm.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/sound/soc/rockchip/rockchip_i2s_tdm.c
++++ b/sound/soc/rockchip/rockchip_i2s_tdm.c
+@@ -1057,6 +1057,7 @@ static const struct of_device_id rockchip_i2s_tdm_match[] = {
+ 	{ .compatible = "rockchip,rk3568-i2s-tdm", .data = &rk3568_i2s_soc_data },
+ 	{ .compatible = "rockchip,rk3588-i2s-tdm" },
+ 	{ .compatible = "rockchip,rv1126-i2s-tdm", .data = &rv1126_i2s_soc_data },
++	{ .compatible = "rockchip,rv1106-i2s-tdm" },
+ 	{},
+ };

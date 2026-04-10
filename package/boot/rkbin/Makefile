@@ -69,6 +69,12 @@ define Trusted-Firmware-A/rv1106
   TPL:=rv11/rv1106_ddr_924MHz_v1.15.bin
 endef
 
+define Trusted-Firmware-A/rv1103-nand
+  BUILD_SUBTARGET:=cortexa7
+  ATF:=rv11/rv1106_spl_spi_nand_tb_v1.00.bin
+  TPL:=rv11/rv1106_ddr_924MHz_tb_v1.15.bin
+endef
+
 TFA_TARGETS:= \
 	rk3308 \
 	rk3308-rock-pi-s \
@@ -76,7 +82,8 @@ TFA_TARGETS:= \
 	rk3568 \
 	rk3568-e25 \
 	rk3588 \
-	rv1106
+	rv1106 \
+	rv1103-nand
 
 ifeq ($(BUILD_VARIANT),rk3308-rock-pi-s)
   TPL_FILE:=rk3308_ddr_589MHz_uart0_m0_v2.07.bin
@@ -129,8 +136,28 @@ define Package/trusted-firmware-a-rv1106/install
 	chmod +x $(PKG_BUILD_DIR)/tools/boot_merger
 	cd $(PKG_BUILD_DIR) && ./tools/boot_merger RKBOOT/RV1106MINIALL.ini
 	$(CP) $(PKG_BUILD_DIR)/rv1106_idblock_v*.img $(STAGING_DIR_IMAGE)/rv1106-sd-idblock.img
-	# Stage loaderimage for the future uboot-luckfox package
+	# Stage loaderimage for uboot-luckfox package
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tools/loaderimage $(STAGING_DIR_IMAGE)/loaderimage
+endef
+
+define Package/trusted-firmware-a-rv1103-nand/install
+	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
+	# Generate NAND idblock.img using TB (Thunderboot) binaries:
+	#   rv1106_ddr_924MHz_tb_v1.15.bin   - DDR init (TB variant)
+	#   rv1106_hpmcu_tb_v1.01.bin        - HPMCU (loaded at 0x40000)
+	#   rv1106_spl_spi_nand_tb_v1.00.bin - SPL for SPI NAND
+	# Use the W25N01XX-specific INI: the Luckfox Pico Mini B has a Winbond W25N01GV (ef:ae:21)
+	# and rv1106_usbplug_w25n01xx_v1.09.bin correctly programs this NAND family.
+	# The generic usbplug writes incorrectly to W25N01GV, leaving the uboot
+	# partition corrupt on-flash; the TB SPL then falls back to USB boot.
+	# The idblock is identical between INIs (same FlashBoot SPL binary).
+	chmod +x $(PKG_BUILD_DIR)/tools/boot_merger
+	cd $(PKG_BUILD_DIR) && ./tools/boot_merger RKBOOT/RV1106MINIALL_SPI_NAND_W25N01XX_TB.ini
+	# INI specifies IDB_PATH=rv1106_idblock_v1.15.100.img
+	$(CP) $(PKG_BUILD_DIR)/rv1106_idblock_v1.15.100.img $(STAGING_DIR_IMAGE)/rv1103-nand-idblock.img
+	# USB download loader for rkdeveloptool db (maskrom/USB download mode)
+	# W25N01XX variant uses rv1106_usbplug_w25n01xx_v1.09.bin for correct NAND writes
+	$(CP) $(PKG_BUILD_DIR)/rv1106_download_v1.15.108.bin $(STAGING_DIR_IMAGE)/rv1103-nand-loader.bin
 endef
 
 $(eval $(call BuildPackage/Trusted-Firmware-A))

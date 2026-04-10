@@ -38,12 +38,21 @@ platform_do_upgrade() {
 		emmc_do_upgrade "$1"
 		;;
 	luckfox,rv1106-luckfox-pico-max|\
+	luckfox,rv1103-luckfox-pico-mini-b|\
 	onion,rv1103b-omega4-evb|\
 	plan44,p44-xx-pico-max)
 		# CI_xx are mtd partition names, known by the kernel via /sys/block/mtdblockX/device/name
 		CI_KERNPART="boot"
 		CI_ROOTPART="rootfs"
 		nand_do_upgrade "$1"
+		;;
+	luckfox,rv1103-luckfox-pico-mini-a)
+		export_bootdevice && export_partdevice diskdev 0 || {
+			echo "Unable to determine upgrade device"
+			return 1
+		}
+		sync
+		get_image "$@" | dd of="/dev/$diskdev" bs=4096 conv=fsync
 		;;
 	*)
 		default_do_upgrade "$1"
@@ -64,10 +73,14 @@ platform_check_image() {
 		return $?
 		;;
 	luckfox,rv1106-luckfox-pico-max|\
+	luckfox,rv1103-luckfox-pico-mini-b|\
 	onion,rv1103b-omega4-evb|\
 	plan44,p44-xx-pico-max)
 		nand_do_platform_check "$board" "$1"
 		return $?
+		;;
+	luckfox,rv1103-luckfox-pico-mini-a)
+		return 0
 		;;
 	*)
 		echo "Sysupgrade is not supported on your board yet."

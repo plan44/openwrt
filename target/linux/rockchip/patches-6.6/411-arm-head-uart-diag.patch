@@ -1,0 +1,77 @@
+From: Debug <debug@localhost>
+Date: Wed, 9 Apr 2026 00:00:00 +0000
+Subject: [PATCH] arm: head.S: add DEBUG_LL UART diagnostic checkpoints
+
+Writes single characters to UART2 (0xff4c0000, reg-shift=2) at four
+checkpoints in the early boot path to identify where the kernel hangs.
+
+Output sequence meaning (watch at 1500000 baud):
+  'K' - kernel entered (after ARM->Thumb switch)
+  'P' - processor type found (__lookup_processor_type non-zero)
+  'T' - __create_page_tables returned
+  'M' - MMU on, in __mmap_switched (earlycon fires after this)
+
+  no 'K'  -> kernel never entered, or UART inaccessible at 0xff4c0000
+  'K' only -> cpu not recognised, hanging in __error_p
+  'KP'    -> crash in __fixup_pv_table or __create_page_tables
+  'KPT'   -> crash in cpu init function or __enable_mmu
+  'KPTM'  -> MMU ok; earlycon should fire next
+
+Only compiled when CONFIG_DEBUG_LL=y. Remove after diagnosis.
+
+--- a/arch/arm/kernel/head.S	2026-04-09 19:02:11.802916804 -0500
++++ b/arch/arm/kernel/head.S	2026-04-09 19:02:36.165719017 -0500
+@@ -109,6 +109,16 @@
+ 	movs	r10, r5				@ invalid processor (r5=0)?
+  THUMB( it	eq )		@ force fixup-able long branch encoding
+ 	beq	__error_p			@ yes, error 'p'
++#ifdef CONFIG_DEBUG_LL
++	@ Reached only if processor found (r5 != 0). r5/r9/r10 preserved; r0/r1/r2 free.
++	movw	r2, #0
++	movt	r2, #0xff4c			@ r2 = 0xff4c0000 (UART2 phys)
++	movw	r0, #0x50			@ 'P' = Processor found
++0:	ldr	r1, [r2, #0x14]
++	tst	r1, #0x20
++	beq	0b
++	str	r0, [r2]
++#endif
+ 
+ #ifdef CONFIG_ARM_LPAE
+ 	mrc	p15, 0, r3, c0, c1, 4		@ read ID_MMFR0
+@@ -138,6 +148,16 @@
+ #endif
+ 	bl	__create_page_tables
+ 
++#ifdef CONFIG_DEBUG_LL
++	@ r4=TTBR, r8=phys_offset, r9=cpuid, r10=procinfo preserved; r0/r1/r2 free.
++	movw	r2, #0
++	movt	r2, #0xff4c			@ r2 = 0xff4c0000 (UART2 phys)
++	movw	r0, #0x54			@ 'T' = page Tables created
++0:	ldr	r1, [r2, #0x14]
++	tst	r1, #0x20
++	beq	0b
++	str	r0, [r2]
++#endif
+ 	/*
+ 	 * The following calls CPU specific code in a position independent
+ 	 * manner.  See arch/arm/mm/proc-*.S for details.  r10 = base of
+--- a/arch/arm/kernel/head-common.S	2026-04-09 19:02:11.804220482 -0500
++++ b/arch/arm/kernel/head-common.S	2026-04-09 19:04:21.465453546 -0500
+@@ -79,6 +79,17 @@
+ 	mov	r7, r1
+ 	mov	r8, r2
+ 	mov	r10, r0
++#ifdef CONFIG_DEBUG_LL
++	@ r10 = saved cp15 ctrl; r0/r1/r2 are free.
++	@ UART_VIRT = 0xff4c0000 = UART_PHYS (mapped by DEBUG_LL create_page_tables).
++	movw	r2, #0
++	movt	r2, #0xff4c			@ r2 = 0xff4c0000 (UART2 virt)
++	movw	r0, #0x4d			@ 'M' = MMU on, __mmap_switched
++0:	ldr	r1, [r2, #0x14]
++	tst	r1, #0x20
++	beq	0b
++	str	r0, [r2]
++#endif
+ 
+ 	adr	r4, __mmap_switched_data
+ 	mov	fp, #0

@@ -1,0 +1,105 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2023 Luckfox Electronics Co., Ltd.
+ */
+
+/dts-v1/;
+
+#include "rv1103.dtsi"
+#include "rv1106-evb.dtsi"
+#include "rv1103-luckfox-pico-ipc.dtsi"
+
+/ {
+	model = "Luckfox Pico Mini A";
+	compatible = "luckfox,rv1103-luckfox-pico-mini-a", "rockchip,rv1103";
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000,115200,24000000 earlyprintk console=ttyS2,115200n8 loglevel=8 ignore_loglevel";
+	};
+};
+
+/**********SFC**********/
+/* Luckfox Pico Mini A has no onboard flash */
+&sfc {
+	status = "disabled";
+};
+
+/**********SDMMC**********/
+&sdmmc {
+	max-frequency = <50000000>;
+	no-sdio;
+	no-mmc;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_det &sdmmc0_bus4>;
+	status = "okay";
+};
+
+/**********ETH**********/
+&gmac {
+	status = "disabled";
+};
+
+/**********USB**********/
+&usbdrd_dwc3 {
+	/* PHY_ROCKCHIP_INNO_USB2 not yet patched in; drop PHY/extcon refs so
+	 * DWC3 doesn't EPROBE_DEFER indefinitely. Bootloader initialises the
+	 * USB PHY; peripheral-mode gadget works without kernel PHY driver. */
+	/delete-property/ phys;
+	/delete-property/ phy-names;
+	/delete-property/ extcon;
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+/**********SPI**********/
+/* SPI0_M0 */
+&spi0 {
+	status = "disabled";
+	spidev@0 {
+		spi-max-frequency = <50000000>;
+	};
+};
+
+/**********I2C**********/
+/* I2C3_M1 */
+&i2c3 {
+	status = "disabled";
+	clock-frequency = <100000>;
+};
+
+/* Disable camera sensors from ipc DTSI — sc4336 and sc530ai both claim
+ * i2c4 address 0x30 which causes -EBUSY at boot. Luckfox Pico Mini A has no onboard
+ * camera; enable the appropriate sensor in a board overlay if needed. */
+&sc4336 {
+	status = "disabled";
+};
+
+&sc530ai {
+	status = "disabled";
+};
+
+/**********UART**********/
+/* UART2_M1 — debug console */
+&uart2 {
+	status = "okay";
+};
+
+/* UART3_M1 */
+&uart3 {
+	status = "disabled";
+};
+
+/* UART4_M1 */
+&uart4 {
+	status = "disabled";
+};
+
+/**********PWM**********/
+/* PWM1_M0 */
+&pwm1 {
+	status = "disabled";
+};

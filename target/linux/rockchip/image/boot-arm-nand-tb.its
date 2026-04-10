@@ -2,11 +2,17 @@
  * Copyright (C) 2021 Rockchip Electronics Co., Ltd
  *
  * SPDX-License-Identifier: GPL-2.0
+ *
+ * For Thunderboot (TB) SPI NAND builds where the rkbin NAND SPL loads the
+ * kernel directly. The SPL uses SDRAM 0x0-0x1fffff for its stack/heap, so
+ * the kernel must be placed at 0x208000 (above the SPL region). The SPL
+ * resolves FDT_ADDR_PLACEHOLDER (0xffffff00) but not KERNEL_ADDR_PLACEHOLDER
+ * (0xffffff01), so kernel load/entry must be a real address.
  */
 
 /dts-v1/;
 / {
-    description = "FIT image with Linux kernel, FDT blob and resource";
+    description = "FIT image with Linux kernel, FDT blob and resource (NAND TB)";
 
     images {
         fdt {
@@ -14,10 +20,11 @@
             type = "flat_dt";
             arch = "arm";
             compression = "none";
-            load = <0x02000000>;
+            load = <0xffffff00>;
 
             hash {
                 algo = "sha256";
+                uboot-ignore = <1>;
             };
         };
 
@@ -27,11 +34,12 @@
             arch = "arm";
             os = "linux";
             compression = "none";
-            entry = <0xffffff01>;
-            load = <0xffffff01>;
+            entry = <0x00208000>;
+            load = <0x00208000>;
 
             hash {
                 algo = "sha256";
+                uboot-ignore = <1>;
             };
         };
 
@@ -43,6 +51,7 @@
 
             hash {
                 algo = "sha256";
+                uboot-ignore = <1>;
             };
         };
     };

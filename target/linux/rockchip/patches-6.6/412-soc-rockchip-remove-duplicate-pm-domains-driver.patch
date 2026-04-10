@@ -1,0 +1,29 @@
+From: Claude Sonnet 4.6 <noreply@anthropic.com>
+Date: Wed, 9 Apr 2026 00:00:00 +0000
+Subject: [PATCH] soc/rockchip: remove duplicate pm-domains driver from drivers/soc
+
+Linux 6.5 moved the Rockchip power domain driver to drivers/pmdomain/rockchip/.
+The vendor fork retained the old copy in drivers/soc/rockchip/pm_domains.c with
+its own Makefile entry under the same CONFIG_ROCKCHIP_PM_DOMAINS symbol.
+
+Both files compile and both call postcore_initcall to register a platform driver
+named "rockchip-pm-domain", resulting in:
+
+  Error: Driver 'rockchip-pm-domain' is already registered, aborting...
+
+Remove the soc/rockchip copy from the Makefile so only the upstream
+drivers/pmdomain/rockchip/pm-domains.c is built. Neither copy has
+RV1106/RV1103 power domain entries, so no functionality is lost.
+
+---
+ drivers/soc/rockchip/Makefile | 1 -
+ 1 file changed, 1 deletion(-)
+
+--- a/drivers/soc/rockchip/Makefile
++++ b/drivers/soc/rockchip/Makefile
+@@ -11,7 +11,6 @@ obj-$(CONFIG_ROCKCHIP_IODOMAIN) += io-domain.o
+ obj-$(CONFIG_ROCKCHIP_IOMUX) += iomux.o
+-obj-$(CONFIG_ROCKCHIP_PM_DOMAINS) += pm_domains.o
+ obj-$(CONFIG_ROCKCHIP_DTPM) += dtpm.o
+ obj-$(CONFIG_ROCKCHIP_FIQ_DEBUGGER) += fiq_debugger/
+ obj-$(CONFIG_ROCKCHIP_VENDOR_STORAGE) += rk_vendor_storage.o

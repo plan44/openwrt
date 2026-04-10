@@ -8,6 +8,11 @@ define Build/env-rv1103b-nand-img
 	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1103b-uboot.env.spi-nand.txt
 endef
 
+define Build/env-rv1103-nand-img
+	if [ ! -d $(STAGING_DIR_IMAGE) ]; then mkdir -p $(STAGING_DIR_IMAGE) ; fi
+	mkenvimage -s 0x40000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1103-uboot.env.spi-nand.txt
+endef
+
 define Build/env-rv1106-sd-img
 	if [ ! -d $(STAGING_DIR_IMAGE) ]; then mkdir -p $(STAGING_DIR_IMAGE) ; fi
 	mkenvimage -s 0x8000 -p 0x0 -o $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img ./rv1106-uboot.env.sd.txt
@@ -33,6 +38,28 @@ endef
 
 define Build/rockchip-uboot-img
 	cp $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-uboot.img $@
+endef
+
+define Build/rockchip-loader-bin
+	cp $(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-loader.bin $@
+endef
+
+define Build/nand-combined-img
+	# Assemble a single flashable NAND image with all partitions at correct offsets.
+	# Partition layout (sector = 512 bytes):
+	#   env:     sector 0     (offset 0,     size 256K)
+	#   idblock: sector 512   (offset 256K,  size 256K)  idblock is ~280K; last 24K overlaps
+	#                                                     uboot start (overlap is padding, harmless)
+	#   uboot:   sector 1024  (offset 512K,  size 512K)
+	#   [gap]:   sector 2048  (offset 1MB,   size 256K)  skip bad block at physical 1MB
+	#   boot:    sector 2560  (offset 1.25MB,size 6MB)   kernel FIT is ~4.6MB
+	# UBI rootfs is appended at offset 7.25MB by append-ubi.
+	dd if=/dev/zero bs=512 count=14848 | tr '\0' '\377' > $@.tmp
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img     of=$@.tmp bs=512 seek=0    conv=notrunc
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-idblock.img of=$@.tmp bs=512 seek=512  conv=notrunc
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-uboot.img   of=$@.tmp bs=512 seek=1024 conv=notrunc
+	dd if=$(IMAGE_KERNEL)                                        of=$@.tmp bs=512 seek=2560 conv=notrunc
+	mv $@.tmp $@
 endef
 
 define Device/Default-emmc
@@ -132,18 +159,40 @@ define Device/luckfox_pico-max
 endef
 TARGET_DEVICES += luckfox_pico-max
 
-define Device/luckfox_pico-mini
+define Device/luckfox_pico-mini-a
   $(Device/Default-sdcard)
-  DEVICE_TITLE := Luckfox Pico Mini
-  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini
+  DEVICE_TITLE := Luckfox Pico Mini A
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini-a
   SOC := rv1103
-  DEVICE_DTS := rv1103g-luckfox-pico-mini
+  DEVICE_DTS := rv1103g-luckfox-pico-mini-a
   UBOOT_DEVICE_NAME := rv1106-sd
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   IMAGES += sysupgrade.img.gz
   IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
-TARGET_DEVICES += luckfox_pico-mini
+TARGET_DEVICES += luckfox_pico-mini-a
+
+define Device/luckfox_pico-mini-b
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Luckfox Pico Mini B
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini-b
+  SOC := rv1103
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1103g-luckfox-pico-mini-b
+  UBOOT_DEVICE_NAME := rv1103-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
+  IMAGE/boot.img := append-kernel
+  IMAGE/env.img := env-rv1103-nand-img | rockchip-env-img
+  IMAGES += sysupgrade.tar nand-flash.img
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  IMAGE/nand-flash.img := env-rv1103-nand-img | nand-combined-img | append-ubi
+  ARTIFACTS := idblock.img uboot.img loader.bin
+  ARTIFACT/idblock.img := rockchip-idblock-img
+  ARTIFACT/uboot.img := rockchip-uboot-img
+  ARTIFACT/loader.bin := rockchip-loader-bin
+endef
+TARGET_DEVICES += luckfox_pico-mini-b
 
 define Device/luckfox_pico-86panel-w
   $(Device/Default-emmc)
