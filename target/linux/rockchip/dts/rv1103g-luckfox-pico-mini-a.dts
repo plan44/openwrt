@@ -82,6 +82,12 @@
 	status = "disabled";
 };
 
+/* fiq-debugger is a vendor-only feature with no upstream driver; disable to
+ * suppress "Dropping the fwnode link to /interrupt-controller" at boot. */
+&fiq_debugger {
+	status = "disabled";
+};
+
 /**********UART**********/
 /* UART2_M1 — debug console */
 &uart2 {

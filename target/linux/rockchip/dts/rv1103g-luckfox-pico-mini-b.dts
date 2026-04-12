@@ -14,7 +14,7 @@
 	compatible = "luckfox,rv1103-luckfox-pico-mini-b", "rockchip,rv1103";
 
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 mtdparts=spi2.0:256K(env),256K@256K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel mtdparts=spi2.0:256K(env),256K@256K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
 	};
 };
 

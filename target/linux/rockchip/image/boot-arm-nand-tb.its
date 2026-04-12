@@ -5,9 +5,11 @@
  *
  * For Thunderboot (TB) SPI NAND builds where the rkbin NAND SPL loads the
  * kernel directly. The SPL uses SDRAM 0x0-0x1fffff for its stack/heap, so
- * the kernel must be placed at 0x208000 (above the SPL region). The SPL
- * resolves FDT_ADDR_PLACEHOLDER (0xffffff00) but not KERNEL_ADDR_PLACEHOLDER
- * (0xffffff01), so kernel load/entry must be a real address.
+ * the kernel must be placed at 0x208000 (above the SPL region). Unlike the
+ * SD SPL, the TB NAND SPL (CONFIG_SPL_KERNEL_BOOT=y) does NOT resolve either
+ * FDT_ADDR_PLACEHOLDER (0xffffff00) or KERNEL_ADDR_PLACEHOLDER (0xffffff01).
+ * All load/entry addresses must be real. FDT at 0x02000000 (32MB) is safe
+ * for 64MB DRAM and matches the SD card build convention.
  */
 
 /dts-v1/;
@@ -20,7 +22,7 @@
             type = "flat_dt";
             arch = "arm";
             compression = "none";
-            load = <0xffffff00>;
+            load = <0x02000000>;
 
             hash {
                 algo = "sha256";
