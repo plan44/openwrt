@@ -11,19 +11,28 @@
 
 / {
 	model = "Luckfox Pico Mini";
-	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1103";
+	/* Mini B listed first; Mini A listed for sysupgrade compatibility.
+	 * Both variants are hardware-identical except for onboard SPI NAND,
+	 * which is disabled below. A single SD image boots either board. */
+	compatible = "luckfox,rv1103-luckfox-pico-mini-b", "luckfox,rv1103-luckfox-pico-mini-a", "rockchip,rv1103";
+
+	chosen {
+		/* earlycon + console only; root/blkdevparts come from U-Boot env sys_bootargs */
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,115200n8 loglevel=8 ignore_loglevel";
+	};
+};
+
+/* fiq-debugger is a vendor-only feature with no upstream driver; disable to
+ * suppress "Dropping the fwnode link to /interrupt-controller" at boot. */
+&fiq_debugger {
+	status = "disabled";
 };
 
 /**********SFC**********/
+/* Disabled for SD card boot — avoids MTD/UBI probing that conflicts with
+ * SD rootfs. Mini A has no onboard flash; Mini B's 128MB SPI NAND is unused. */
 &sfc {
-	status = "okay";
-	flash@0 {
-		compatible = "spi-nand";
-		reg = <0>;
-		spi-max-frequency = <75000000>;
-		spi-rx-bus-width = <4>;
-		spi-tx-bus-width = <1>;
-	};
+	status = "disabled";
 };
 
 /**********SDMMC**********/
@@ -47,8 +56,14 @@
 
 /**********USB**********/
 &usbdrd_dwc3 {
-	status = "okay";
+	/* PHY_ROCKCHIP_INNO_USB2 not yet patched in; drop PHY/extcon refs so
+	 * DWC3 doesn't EPROBE_DEFER indefinitely. Bootloader initialises the
+	 * USB PHY; peripheral-mode gadget works without kernel PHY driver. */
+	/delete-property/ phys;
+	/delete-property/ phy-names;
+	/delete-property/ extcon;
 	dr_mode = "peripheral";
+	status = "okay";
 };
 
 /**********SPI**********/
@@ -68,6 +83,12 @@
 };
 
 /**********UART**********/
+/* UART2_M1 — debug console; must be enabled so the 8250 driver claims the
+ * UART2 clock before clk_disable_unused() runs, keeping the console alive. */
+&uart2 {
+	status = "okay";
+};
+
 /* UART3_M1 */
 &uart3 {
 	status = "disabled";
@@ -81,5 +102,16 @@
 /**********PWM**********/
 /* PWM1_M0 */
 &pwm1 {
+	status = "disabled";
+};
+
+/* Disable camera sensors from ipc DTSI — sc4336 and sc530ai both claim
+ * i2c4 address 0x30 which causes -EBUSY at boot. No onboard camera;
+ * enable the appropriate sensor in a board overlay if needed. */
+&sc4336 {
+	status = "disabled";
+};
+
+&sc530ai {
 	status = "disabled";
 };

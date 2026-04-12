@@ -7,10 +7,12 @@ create_fw_env_config() {
 	local compat
 	compat=$(cat /proc/device-tree/compatible 2>/dev/null | tr '\0' '\n' | head -1)
 	case "$compat" in
-	luckfox,rv1103-luckfox-pico-mini-a)
+	luckfox,rv1103-luckfox-pico-mini-b | luckfox,rv1103-luckfox-pico-mini-a)
+		# SD boot (combined Mini profile or legacy Mini A/B-SD)
 		printf '/dev/mmcblk1\t0x0\t0x8000\n' > /tmp/fw_env.config
 		;;
-	luckfox,rv1103-luckfox-pico-mini-b)
+	luckfox,rv1103-luckfox-pico-mini-nand)
+		# NAND boot (Mini B NAND profile)
 		printf '/dev/mtd0\t0x0\t0x40000\t0x20000\n' > /tmp/fw_env.config
 		;;
 	esac

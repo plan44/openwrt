@@ -159,26 +159,26 @@ define Device/luckfox_pico-max
 endef
 TARGET_DEVICES += luckfox_pico-max
 
-define Device/luckfox_pico-mini-a
+define Device/luckfox_pico-mini
   $(Device/Default-sdcard)
-  DEVICE_TITLE := Luckfox Pico Mini A
-  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini-a
+  DEVICE_TITLE := Luckfox Pico Mini
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini-b luckfox,rv1103-luckfox-pico-mini-a
   SOC := rv1103
-  DEVICE_DTS := rv1103g-luckfox-pico-mini-a
+  DEVICE_DTS := rv1103g-luckfox-pico-mini
   UBOOT_DEVICE_NAME := rv1106-sd
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   IMAGES += sysupgrade.img.gz
   IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
-TARGET_DEVICES += luckfox_pico-mini-a
+TARGET_DEVICES += luckfox_pico-mini
 
-define Device/luckfox_pico-mini-b
+define Device/luckfox_pico-mini-nand
   $(Device/Default-nandflash)
-  DEVICE_TITLE := Luckfox Pico Mini B
-  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini-b
+  DEVICE_TITLE := Luckfox Pico Mini (NAND)
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-mini-nand luckfox,rv1103-luckfox-pico-mini-b
   SOC := rv1103
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1103g-luckfox-pico-mini-b
+  DEVICE_DTS := rv1103g-luckfox-pico-mini-nand
   UBOOT_DEVICE_NAME := rv1103-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
@@ -192,7 +192,7 @@ define Device/luckfox_pico-mini-b
   ARTIFACT/uboot.img := rockchip-uboot-img
   ARTIFACT/loader.bin := rockchip-loader-bin
 endef
-TARGET_DEVICES += luckfox_pico-mini-b
+TARGET_DEVICES += luckfox_pico-mini-nand
 
 define Device/luckfox_pico-86panel-w
   $(Device/Default-emmc)

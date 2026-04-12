@@ -10,12 +10,18 @@
 #include "rv1103-luckfox-pico-ipc.dtsi"
 
 / {
-	model = "Luckfox Pico Mini B";
-	compatible = "luckfox,rv1103-luckfox-pico-mini-b", "rockchip,rv1103";
+	model = "Luckfox Pico Mini (NAND)";
+	compatible = "luckfox,rv1103-luckfox-pico-mini-nand", "luckfox,rv1103-luckfox-pico-mini-b", "rockchip,rv1103";
 
 	chosen {
 		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel mtdparts=spi2.0:256K(env),256K@256K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
 	};
+};
+
+/* fiq-debugger is a vendor-only feature with no upstream driver; disable to
+ * suppress "Dropping the fwnode link to /interrupt-controller" at boot. */
+&fiq_debugger {
+	status = "disabled";
 };
 
 /**********SFC**********/
