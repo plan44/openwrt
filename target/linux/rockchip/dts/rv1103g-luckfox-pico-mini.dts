@@ -29,10 +29,22 @@
 };
 
 /**********SFC**********/
-/* Disabled for SD card boot — avoids MTD/UBI probing that conflicts with
- * SD rootfs. Mini A has no onboard flash; Mini B's 128MB SPI NAND is unused. */
+/* Enabled so the NAND MTD device is available for recovery/bad-block scanning
+ * on Mini B. On Mini A (no onboard flash) the spi-nand probe will fail with
+ * "unknown raw ID ff ff ff ff ..." — this is expected and harmless. */
 &sfc {
-	status = "disabled";
+	status = "okay";
+	/* Pinctrl required on SD boot — rkbin only sets up SFC pins for NAND
+	 * boot; when booting from SD the kernel must mux them explicitly. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&fspi_pins &fspi_cs0>;
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-max-frequency = <75000000>;
+		spi-rx-bus-width = <4>;
+		spi-tx-bus-width = <1>;
+	};
 };
 
 /**********SDMMC**********/

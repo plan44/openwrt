@@ -166,7 +166,7 @@ define Device/luckfox_pico-mini
   SOC := rv1103
   DEVICE_DTS := rv1103g-luckfox-pico-mini
   UBOOT_DEVICE_NAME := rv1106-sd
-  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip nandtest
   IMAGES += sysupgrade.img.gz
   IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
@@ -180,7 +180,7 @@ define Device/luckfox_pico-mini-nand
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1103g-luckfox-pico-mini-nand
   UBOOT_DEVICE_NAME := rv1103-nand
-  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip nandtest
   KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
   IMAGE/boot.img := append-kernel
   IMAGE/env.img := env-rv1103-nand-img | rockchip-env-img

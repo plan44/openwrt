@@ -79,6 +79,12 @@
 };
 
 /**********UART**********/
+/* UART2_M1 — debug console; must be enabled so the 8250 driver claims the
+ * UART2 clock before clk_disable_unused() runs, keeping the console alive. */
+&uart2 {
+	status = "okay";
+};
+
 /* UART3_M1 */
 &uart3 {
 	status = "disabled";
