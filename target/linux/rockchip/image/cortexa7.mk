@@ -48,16 +48,14 @@ define Build/nand-combined-img
 	# Assemble a single flashable NAND image with all partitions at correct offsets.
 	# Partition layout (sector = 512 bytes):
 	#   env:     sector 0     (offset 0,     size 256K)
-	#   idblock: sector 512   (offset 256K,  size 256K)  idblock is ~280K; last 24K overlaps
-	#                                                     uboot start (overlap is padding, harmless)
-	#   uboot:   sector 1024  (offset 512K,  size 512K)
-	#   [gap]:   sector 2048  (offset 1MB,   size 256K)  skip bad block at physical 1MB
+	#   idblock: sector 512   (offset 256K,  size 512K)  idblock ~280K fits cleanly
+	#   uboot:   sector 1536  (offset 768K,  size 512K)
 	#   boot:    sector 2560  (offset 1.25MB,size 6MB)   kernel FIT is ~4.6MB
 	# UBI rootfs is appended at offset 7.25MB by append-ubi.
 	dd if=/dev/zero bs=512 count=14848 | tr '\0' '\377' > $@.tmp
 	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img     of=$@.tmp bs=512 seek=0    conv=notrunc
 	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-idblock.img of=$@.tmp bs=512 seek=512  conv=notrunc
-	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-uboot.img   of=$@.tmp bs=512 seek=1024 conv=notrunc
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-uboot.img   of=$@.tmp bs=512 seek=1536 conv=notrunc
 	dd if=$(IMAGE_KERNEL)                                        of=$@.tmp bs=512 seek=2560 conv=notrunc
 	mv $@.tmp $@
 endef

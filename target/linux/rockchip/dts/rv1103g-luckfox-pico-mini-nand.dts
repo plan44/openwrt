@@ -24,8 +24,22 @@
 	status = "disabled";
 };
 
+/* Mini B has no buttons on SARADC channel 0. Floating pin reads below the
+ * keyup threshold, which U-Boot interprets as the volume-up (download)
+ * key being pressed — diverting boot into rockusb download mode. */
+&{/adc-keys} {
+	status = "disabled";
+};
+
 /**********SFC**********/
-/* Luckfox Pico Mini B has 128MB SPI NAND */
+/* Luckfox Pico Mini B has 128MB SPI NAND.
+ *
+ * Partitions are declared via fixed-partitions rather than cmdline
+ * mtdparts: U-Boot's MTD layer hardcodes the flash name as "spi-nand0"
+ * (drivers/mtd/nand/spi/core.c) while Linux names it "spi2.0" (from
+ * dev_name of the SPI parent), so a single mtdparts= string cannot
+ * satisfy both. OF partitions make Linux create MTDs by label, which
+ * lets ubi.mtd=ubi match regardless of the parent MTD name. */
 &sfc {
 	status = "okay";
 	flash@0 {
@@ -34,6 +48,33 @@
 		spi-max-frequency = <75000000>;
 		spi-rx-bus-width = <4>;
 		spi-tx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "env";
+				reg = <0x000000 0x040000>;
+			};
+			partition@40000 {
+				label = "idblock";
+				reg = <0x040000 0x080000>;
+			};
+			partition@c0000 {
+				label = "uboot";
+				reg = <0x0c0000 0x080000>;
+			};
+			partition@140000 {
+				label = "boot";
+				reg = <0x140000 0x600000>;
+			};
+			partition@740000 {
+				label = "ubi";
+				reg = <0x740000 0x78c0000>;
+			};
+		};
 	};
 };
 
