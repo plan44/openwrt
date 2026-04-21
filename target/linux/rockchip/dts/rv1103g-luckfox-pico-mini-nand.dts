@@ -93,8 +93,13 @@
 };
 
 /**********ETH**********/
+/* RV1103 has an integrated 10/100 EPHY; the Mini exposes only the MDI
+ * differential pairs (TXP/TXN/RXP/RXN) on castellated pads. A carrier
+ * board with external magnetics + RJ45 is required for a physical link.
+ * The driver probes cleanly without magnetics (MDIO lives inside the SoC)
+ * and the interface just reports link down until one is attached. */
 &gmac {
-	status = "disabled";
+	status = "okay";
 };
 
 /**********USB**********/
