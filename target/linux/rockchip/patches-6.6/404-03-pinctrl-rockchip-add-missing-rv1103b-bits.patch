@@ -1,0 +1,33 @@
+From 9ac266b99740e62294fdd28b494fc83d1cf7ba49 Mon Sep 17 00:00:00 2001
+From: Lukas Zeller <luz@plan44.ch>
+Date: Sat, 18 Oct 2025 23:08:49 +0200
+Subject: [PATCH] drivers/pinctrl/pinctrl-rockchip.c: add some missing bits
+ forgotten in 728f95
+
+---
+ drivers/pinctrl/pinctrl-rockchip.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pinctrl/pinctrl-rockchip.c b/drivers/pinctrl/pinctrl-rockchip.c
+index 8fd45f7af..e50d75fbe 100644
+--- a/drivers/pinctrl/pinctrl-rockchip.c
++++ b/drivers/pinctrl/pinctrl-rockchip.c
+@@ -3148,11 +3148,14 @@ static int rockchip_get_drive_perpin(struct rockchip_pin_bank *bank,
+ 	struct rockchip_pin_ctrl *ctrl = info->ctrl;
+ 	struct device *dev = info->dev;
+ 	struct regmap *regmap;
+-	int reg, ret;
++	int reg, ret, drv_level = -1;
+ 	u32 data, temp, rmask_bits;
+ 	u8 bit;
+ 	int drv_type = bank->drv[pin_num / 8].drv_type;
+ 
++	if (ctrl->type == RV1103B && pin_num >= 12)
++		drv_type = DRV_TYPE_IO_LEVEL_2_BIT;
++
+ 	ret = ctrl->drv_calc_reg(bank, pin_num, &regmap, &reg, &bit);
+ 	if (ret)
+ 		return ret;
+-- 
+2.53.0
+

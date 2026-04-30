@@ -38,6 +38,7 @@ platform_do_upgrade() {
 		emmc_do_upgrade "$1"
 		;;
 	luckfox,rv1106-luckfox-pico-max|\
+	luckfox,rv1103-luckfox-pico-mini-nand|\
 	onion,rv1103b-omega4-evb|\
 	plan44,rv1103b-p44-base-omega4|\
 	plan44,p44-xx-pico-max)
@@ -45,6 +46,15 @@ platform_do_upgrade() {
 		CI_KERNPART="boot"
 		CI_ROOTPART="rootfs"
 		nand_do_upgrade "$1"
+		;;
+	luckfox,rv1103-luckfox-pico-mini-a|\
+	luckfox,rv1103-luckfox-pico-mini-b)
+		export_bootdevice && export_partdevice diskdev 0 || {
+			echo "Unable to determine upgrade device"
+			return 1
+		}
+		sync
+		get_image "$@" | dd of="/dev/$diskdev" bs=4096 conv=fsync
 		;;
 	*)
 		default_do_upgrade "$1"
@@ -64,12 +74,23 @@ platform_check_image() {
 		nand_do_platform_check "$board" "$1"
 		return $?
 		;;
+	luckfox,rv1103-luckfox-pico-mini-nand)
+		# DEVICE_NAME (luckfox_pico-mini-nand) doesn't match the comma->underscore
+		# form of board_name that nand_do_platform_check looks up. Pass the tar dir
+		# name explicitly. See cortexa7.mk Device/luckfox_pico-mini-nand.
+		nand_do_platform_check "luckfox_pico-mini-nand" "$1"
+		return $?
+		;;
 	luckfox,rv1106-luckfox-pico-max|\
 	onion,rv1103b-omega4-evb|\
 	plan44,rv1103b-p44-base-omega4|\
 	plan44,p44-xx-pico-max)
 		nand_do_platform_check "$board" "$1"
 		return $?
+		;;
+	luckfox,rv1103-luckfox-pico-mini-a|\
+	luckfox,rv1103-luckfox-pico-mini-b)
+		return 0
 		;;
 	*)
 		echo "Sysupgrade is not supported on your board yet."

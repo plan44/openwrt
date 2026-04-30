@@ -1,0 +1,98 @@
+From 76ee62e4724ba1abf54276003fc94894d3fdcaaa Mon Sep 17 00:00:00 2001
+From: Lukas Zeller <luz@plan44.ch>
+Date: Fri, 21 Nov 2025 20:46:36 +0100
+Subject: [PATCH] drivers/pwm/pwm-rockchip.c: adapt to newer kernel API -
+ tested ok with pwm0_ch1 and ch2.
+
+---
+ drivers/pwm/pwm-rockchip.c | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/pwm/pwm-rockchip.c b/drivers/pwm/pwm-rockchip.c
+index 112c64684..78ad02c21 100644
+--- a/drivers/pwm/pwm-rockchip.c
++++ b/drivers/pwm/pwm-rockchip.c
+@@ -344,7 +344,7 @@ static inline struct rockchip_pwm_chip *to_rockchip_pwm_chip(struct pwm_chip *c)
+ 	return container_of(c, struct rockchip_pwm_chip, chip);
+ }
+ 
+-static void rockchip_pwm_get_state(struct pwm_chip *chip,
++static int rockchip_pwm_get_state(struct pwm_chip *chip,
+ 				   struct pwm_device *pwm,
+ 				   struct pwm_state *state)
+ {
+@@ -360,7 +360,7 @@ static void rockchip_pwm_get_state(struct pwm_chip *chip,
+ 	if (!pc->oneshot_en) {
+ 		ret = clk_enable(pc->pclk);
+ 		if (ret)
+-			return;
++			return ret;
+ 	}
+ 
+ 	if (pc->main_version < 4)
+@@ -395,6 +395,8 @@ static void rockchip_pwm_get_state(struct pwm_chip *chip,
+ 
+ 	if (!pc->oneshot_en)
+ 		clk_disable(pc->pclk);
++
++	return 0;
+ }
+ 
+ static irqreturn_t rockchip_pwm_irq_v1(int irq, void *data)
+@@ -420,7 +422,7 @@ static irqreturn_t rockchip_pwm_irq_v1(int irq, void *data)
+ 		 */
+ 		pwm_get_state(&pc->chip.pwms[0], &state);
+ 		state.enabled = false;
+-		pwm_apply_state(&pc->chip.pwms[0], &state);
++		pwm_apply_might_sleep(&pc->chip.pwms[0], &state);
+ 
+ 		rockchip_pwm_oneshot_callback(&pc->chip.pwms[0], &state);
+ 	} else if (pc->capture_en) {
+@@ -645,7 +647,7 @@ static irqreturn_t rockchip_pwm_irq_v4(int irq, void *data)
+ 		state.enabled = false;
+ 		state.oneshot_count = 0;
+ 		state.oneshot_repeat = 0;
+-		pwm_apply_state(&pc->chip.pwms[0], &state);
++		pwm_apply_might_sleep(&pc->chip.pwms[0], &state);
+ 
+ 		rockchip_pwm_oneshot_callback(&pc->chip.pwms[0], &state);
+ 
+@@ -2211,7 +2213,7 @@ static int rockchip_pwm_probe(struct platform_device *pdev)
+ 	return ret;
+ }
+ 
+-static int rockchip_pwm_remove(struct platform_device *pdev)
++static void rockchip_pwm_remove(struct platform_device *pdev)
+ {
+ 	struct rockchip_pwm_chip *pc = platform_get_drvdata(pdev);
+ 	struct pwm_state state;
+@@ -2231,7 +2233,7 @@ static int rockchip_pwm_remove(struct platform_device *pdev)
+ 				dev_err(&pdev->dev, "Wait for oneshot to complete failed\n");
+ 		} else {
+ 			state.enabled = false;
+-			pwm_apply_state(&pc->chip.pwms[0], &state);
++			pwm_apply_might_sleep(&pc->chip.pwms[0], &state);
+ 		}
+ 	}
+ 
+@@ -2240,7 +2242,7 @@ static int rockchip_pwm_remove(struct platform_device *pdev)
+ 	clk_unprepare(pc->pclk);
+ 	clk_unprepare(pc->clk);
+ 
+-	return pwmchip_remove(&pc->chip);
++	pwmchip_remove(&pc->chip);
+ }
+ 
+ static struct platform_driver rockchip_pwm_driver = {
+@@ -2249,7 +2251,7 @@ static struct platform_driver rockchip_pwm_driver = {
+ 		.of_match_table = rockchip_pwm_dt_ids,
+ 	},
+ 	.probe = rockchip_pwm_probe,
+-	.remove = rockchip_pwm_remove,
++	.remove_new = rockchip_pwm_remove,
+ };
+ #ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+ static int __init rockchip_pwm_driver_init(void)
+-- 
+2.53.0
+

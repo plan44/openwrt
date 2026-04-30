@@ -140,6 +140,23 @@ define Build/boot-arm-bin
 	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -B 0x200 -E -p 0x800 -f $@.boot/boot.its $@
 endef
 
+define Build/boot-arm-nand-tb-bin
+	# Like boot-arm-bin but uses real kernel load/entry address (0x208000) instead
+	# of placeholder 0xffffff01. Required for Thunderboot NAND: the rkbin NAND SPL
+	# loads the kernel directly and does not resolve KERNEL_ADDR_PLACEHOLDER.
+	# 0x208000 = above SPL SDRAM region (0x0-0x1fffff), TEXT_OFFSET=0x8000 from 0x200000.
+	rm -fR $@.boot
+	mkdir -p $@.boot
+
+	$(CP) ./boot-arm-nand-tb.its $@.boot/boot.its
+
+	$(CP) $(LINUX_DIR)/resource.img $@.boot/resource
+	$(CP) $(KERNEL_BUILD_DIR)/image-$(DEVICE_DTS).dtb $@.boot/fdt
+	$(CP) $(IMAGE_KERNEL) $@.boot/kernel
+
+	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -B 0x200 -E -p 0x800 -f $@.boot/boot.its $@
+endef
+
 define Build/boot-arm64-bin
 	# This creates a new folder copies the dtb (as rockchip.dtb)
 	# and the kernel image (as kernel.img)

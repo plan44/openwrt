@@ -10,15 +10,11 @@
 #include "rv1103-luckfox-pico-ipc.dtsi"
 
 / {
-	model = "Luckfox Pico Mini";
-	/* Mini B listed first; Mini A listed for sysupgrade compatibility.
-	 * Both variants are hardware-identical except for onboard SPI NAND,
-	 * which is disabled below. A single SD image boots either board. */
-	compatible = "luckfox,rv1103-luckfox-pico-mini-b", "luckfox,rv1103-luckfox-pico-mini-a", "rockchip,rv1103";
+	model = "Luckfox Pico Mini (NAND)";
+	compatible = "luckfox,rv1103-luckfox-pico-mini-nand", "luckfox,rv1103-luckfox-pico-mini-b", "rockchip,rv1103";
 
 	chosen {
-		/* earlycon + console only; root/blkdevparts come from U-Boot env sys_bootargs */
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,115200n8 loglevel=8 ignore_loglevel";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel mtdparts=spi2.0:256K(env),256K@256K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
 	};
 };
 
@@ -28,22 +24,57 @@
 	status = "disabled";
 };
 
+/* Mini B has no buttons on SARADC channel 0. Floating pin reads below the
+ * keyup threshold, which U-Boot interprets as the volume-up (download)
+ * key being pressed — diverting boot into rockusb download mode. */
+&{/adc-keys} {
+	status = "disabled";
+};
+
 /**********SFC**********/
-/* Enabled so the NAND MTD device is available for recovery/bad-block scanning
- * on Mini B. On Mini A (no onboard flash) the spi-nand probe will fail with
- * "unknown raw ID ff ff ff ff ..." — this is expected and harmless. */
+/* Luckfox Pico Mini B has 128MB SPI NAND.
+ *
+ * Partitions are declared via fixed-partitions rather than cmdline
+ * mtdparts: U-Boot's MTD layer hardcodes the flash name as "spi-nand0"
+ * (drivers/mtd/nand/spi/core.c) while Linux names it "spi2.0" (from
+ * dev_name of the SPI parent), so a single mtdparts= string cannot
+ * satisfy both. OF partitions make Linux create MTDs by label, which
+ * lets ubi.mtd=ubi match regardless of the parent MTD name. */
 &sfc {
 	status = "okay";
-	/* Pinctrl required on SD boot — rkbin only sets up SFC pins for NAND
-	 * boot; when booting from SD the kernel must mux them explicitly. */
-	pinctrl-names = "default";
-	pinctrl-0 = <&fspi_pins &fspi_cs0>;
 	flash@0 {
 		compatible = "spi-nand";
 		reg = <0>;
 		spi-max-frequency = <75000000>;
 		spi-rx-bus-width = <4>;
 		spi-tx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "env";
+				reg = <0x000000 0x040000>;
+			};
+			partition@40000 {
+				label = "idblock";
+				reg = <0x040000 0x080000>;
+			};
+			partition@c0000 {
+				label = "uboot";
+				reg = <0x0c0000 0x080000>;
+			};
+			partition@140000 {
+				label = "boot";
+				reg = <0x140000 0x600000>;
+			};
+			partition@740000 {
+				label = "ubi";
+				reg = <0x740000 0x78c0000>;
+			};
+		};
 	};
 };
 
@@ -73,14 +104,8 @@
 
 /**********USB**********/
 &usbdrd_dwc3 {
-	/* PHY_ROCKCHIP_INNO_USB2 not yet patched in; drop PHY/extcon refs so
-	 * DWC3 doesn't EPROBE_DEFER indefinitely. Bootloader initialises the
-	 * USB PHY; peripheral-mode gadget works without kernel PHY driver. */
-	/delete-property/ phys;
-	/delete-property/ phy-names;
-	/delete-property/ extcon;
-	dr_mode = "peripheral";
 	status = "okay";
+	dr_mode = "peripheral";
 };
 
 /**********SPI**********/
@@ -119,16 +144,5 @@
 /**********PWM**********/
 /* PWM1_M0 */
 &pwm1 {
-	status = "disabled";
-};
-
-/* Disable camera sensors from ipc DTSI — sc4336 and sc530ai both claim
- * i2c4 address 0x30 which causes -EBUSY at boot. No onboard camera;
- * enable the appropriate sensor in a board overlay if needed. */
-&sc4336 {
-	status = "disabled";
-};
-
-&sc530ai {
 	status = "disabled";
 };

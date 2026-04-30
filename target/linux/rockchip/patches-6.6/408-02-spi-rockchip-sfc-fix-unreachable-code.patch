@@ -1,0 +1,26 @@
+From 939fed46aa5c138bdf8d6e6779230fa0ec509170 Mon Sep 17 00:00:00 2001
+From: "copilot-swe-agent[bot]" <198982749+Copilot@users.noreply.github.com>
+Date: Wed, 29 Oct 2025 15:00:25 +0000
+Subject: [PATCH] Fix unreachable code in spi-rockchip-sfc.c error handling
+
+Co-authored-by: mh1412 <1589034+mh1412@users.noreply.github.com>
+---
+ drivers/spi/spi-rockchip-sfc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/spi/spi-rockchip-sfc.c b/drivers/spi/spi-rockchip-sfc.c
+index a9616a988..990c8eab5 100644
+--- a/drivers/spi/spi-rockchip-sfc.c
++++ b/drivers/spi/spi-rockchip-sfc.c
+@@ -1029,7 +1029,7 @@ static int rockchip_sfc_probe(struct platform_device *pdev)
+ 	if (sfc->use_dma) {
+ 		sfc->buffer = (u8 *)__get_free_pages(GFP_KERNEL | GFP_DMA32, get_order(sfc->max_iosize));
+ 		if (!sfc->buffer) {
+-			return -ENOMEM;
++			ret = -ENOMEM;
+ 			goto err_dma;
+ 		}
+ 		sfc->dma_buffer = virt_to_phys(sfc->buffer);
+-- 
+2.53.0
+
