@@ -1,6 +1,11 @@
 # Work in progress for supporting OpenWrt 24.10.2 on Rockchip rv1106/rv1103(b) based targets
 
-For questions related to this specific branch please use PRs and issues on this repo, for everything else not related to rv1106 support please [go to the original OpenWrt repo](https://github.com/openwrt/openwrt).
+This branch (`rv110x_24.10`) is the combined efforts of several contributors to bring OpenWrt 24.10 to the small rockchips from the rv110x family, which are for example used on Onion SoMs and Luckfox dev boards. This branch was created and made the default branch in April 2026, when work on rv110x targets gained more traction (thanks @rgrizzell!) so decoupling from plan44 specific progress (or lack thereof, at times) was needed to prevent blocking overall progress.
+
+Still, there is the more plan44 specific (and with this, rv1103b focused) branch `p44_24.10` and one with my latest, sometimes experimental work  `luz-WIP`.
+
+Only for questions related to rv110x, please use PRs and issues on this repo.
+For everything else not related to rv110x support please [go to the original OpenWrt repo](https://github.com/openwrt/openwrt).
 
 Original OpenWrt README.md below:
 
