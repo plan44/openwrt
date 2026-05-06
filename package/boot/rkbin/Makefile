@@ -75,6 +75,18 @@ define Trusted-Firmware-A/rv1103-nand
   TPL:=rv11/rv1106_ddr_924MHz_tb_v1.15.bin
 endef
 
+define Trusted-Firmware-A/rv1106-nand
+  BUILD_SUBTARGET:=cortexa7
+  ATF:=rv11/rv1106_spl_spi_nand_tb_v1.00.bin
+  TPL:=rv11/rv1106_ddr_924MHz_tb_v1.15.bin
+endef
+
+define Trusted-Firmware-A/rv1106-emmc
+  BUILD_SUBTARGET:=cortexa7
+  ATF:=rv11/rv1106_spl_emmc_tb_v1.00.bin
+  TPL:=rv11/rv1106_ddr_924MHz_tb_v1.15.bin
+endef
+
 TFA_TARGETS:= \
 	rk3308 \
 	rk3308-rock-pi-s \
@@ -83,7 +95,9 @@ TFA_TARGETS:= \
 	rk3568-e25 \
 	rk3588 \
 	rv1106 \
-	rv1103-nand
+	rv1103-nand \
+	rv1106-nand \
+	rv1106-emmc
 
 ifeq ($(BUILD_VARIANT),rk3308-rock-pi-s)
   TPL_FILE:=rk3308_ddr_589MHz_uart0_m0_v2.07.bin
@@ -158,6 +172,34 @@ define Package/trusted-firmware-a-rv1103-nand/install
 	# USB download loader for rkdeveloptool db (maskrom/USB download mode)
 	# W25N01XX variant uses rv1106_usbplug_w25n01xx_v1.09.bin for correct NAND writes
 	$(CP) $(PKG_BUILD_DIR)/rv1106_download_v1.15.108.bin $(STAGING_DIR_IMAGE)/rv1103-nand-loader.bin
+endef
+
+define Package/trusted-firmware-a-rv1106-nand/install
+	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
+	# Generate NAND idblock.img for RV1106 SPI NAND (Pro, Max, Pro Max) using TB binaries:
+	#   rv1106_ddr_924MHz_tb_v1.15.bin   - DDR init (TB variant)
+	#   rv1106_hpmcu_tb_v1.01.bin        - HPMCU (loaded at 0x40000)
+	#   rv1106_spl_spi_nand_tb_v1.00.bin - SPL for SPI NAND
+	chmod +x $(PKG_BUILD_DIR)/tools/boot_merger
+	cd $(PKG_BUILD_DIR) && ./tools/boot_merger RKBOOT/RV1106MINIALL_SPI_NAND_TB.ini
+	# INI specifies IDB_PATH=rv1106_idblock_v1.15.100.img
+	$(CP) $(PKG_BUILD_DIR)/rv1106_idblock_v1.15.100.img $(STAGING_DIR_IMAGE)/rv1106-nand-idblock.img
+	# USB download loader for rkdeveloptool db (maskrom/USB download mode)
+	$(CP) $(PKG_BUILD_DIR)/rv1106_download_v1.15.108.bin $(STAGING_DIR_IMAGE)/rv1106-nand-loader.bin
+endef
+
+define Package/trusted-firmware-a-rv1106-emmc/install
+	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
+	# Generate eMMC idblock.img for RV1106 eMMC (Ultra, Pi, 86Panel, Zero) using TB binaries:
+	#   rv1106_ddr_924MHz_tb_v1.15.bin  - DDR init (TB variant)
+	#   rv1106_hpmcu_tb_v1.01.bin       - HPMCU (loaded at 0x40000)
+	#   rv1106_spl_emmc_tb_v1.00.bin    - SPL for eMMC
+	chmod +x $(PKG_BUILD_DIR)/tools/boot_merger
+	cd $(PKG_BUILD_DIR) && ./tools/boot_merger RKBOOT/RV1106MINIALL_EMMC_TB.ini
+	# INI specifies IDB_PATH=rv1106_idblock_v1.15.100.img
+	$(CP) $(PKG_BUILD_DIR)/rv1106_idblock_v1.15.100.img $(STAGING_DIR_IMAGE)/rv1106-emmc-idblock.img
+	# USB download loader for rkdeveloptool db (maskrom/USB download mode)
+	$(CP) $(PKG_BUILD_DIR)/rv1106_download_v1.15.108.bin $(STAGING_DIR_IMAGE)/rv1106-emmc-loader.bin
 endef
 
 $(eval $(call BuildPackage/Trusted-Firmware-A))

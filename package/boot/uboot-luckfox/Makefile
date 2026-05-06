@@ -29,7 +29,7 @@ define U-Boot/rv1106-sd
   NAME:=Luckfox Pico RV1106 SD
   UBOOT_CONFIG:=luckfox_rv1106_uboot
   DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1106
-  BUILD_DEVICES:=luckfox_pico-mini
+  BUILD_DEVICES:=luckfox_pico-mini luckfox_pico luckfox_pico-plus luckfox_pico-webbee
 endef
 
 define U-Boot/rv1103-nand
@@ -37,10 +37,26 @@ define U-Boot/rv1103-nand
   NAME:=Luckfox Pico RV1103 SPI NAND
   UBOOT_CONFIG:=luckfox_rv1106_spi_nand_tb
   DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1103-nand
-  BUILD_DEVICES:=luckfox_pico-mini-nand
+  BUILD_DEVICES:=luckfox_pico-mini-nand luckfox_pico-plus-nand luckfox_pico-webbee-nand
 endef
 
-UBOOT_TARGETS := rv1106-sd rv1103-nand
+define U-Boot/rv1106-nand
+  BUILD_SUBTARGET:=cortexa7
+  NAME:=Luckfox Pico RV1106 SPI NAND
+  UBOOT_CONFIG:=luckfox_rv1106_spi_nand_tb
+  DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1106-nand
+  BUILD_DEVICES:=luckfox_pico-max luckfox_pico-pro luckfox_pico-pro-max
+endef
+
+define U-Boot/rv1106-emmc
+  BUILD_SUBTARGET:=cortexa7
+  NAME:=Luckfox Pico RV1106 eMMC
+  UBOOT_CONFIG:=luckfox_rv1106_uboot_emmc_tb
+  DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1106-emmc
+  BUILD_DEVICES:=luckfox_pico-86panel-w luckfox_pico-86panel luckfox_pico-ultra luckfox_pico-ultra-w luckfox_pico-pi luckfox_pico-pi-w luckfox_pico-zero
+endef
+
+UBOOT_TARGETS := rv1106-sd rv1103-nand rv1106-nand rv1106-emmc
 
 # Vendor U-Boot 2017.09 uses _defconfig (no _config compat rule)
 define Build/Configure
@@ -59,6 +75,16 @@ ifeq ($(BUILD_VARIANT),rv1103-nand)
 	# for recovery/download mode; normal TB boot does not use this partition.
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/u-boot.img \
 		$(STAGING_DIR_IMAGE)/rv1103-nand-uboot.img
+else ifeq ($(BUILD_VARIANT),rv1106-nand)
+	# Stage u-boot.img for RV1106 SPI NAND (Pro, Max, Pro Max).
+	# The rkbin NAND SPL boots the kernel directly (TB); this img is for
+	# recovery/download mode only.
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/u-boot.img \
+		$(STAGING_DIR_IMAGE)/rv1106-nand-uboot.img
+else ifeq ($(BUILD_VARIANT),rv1106-emmc)
+	# Stage u-boot.img for RV1106 eMMC (Ultra, Pi, 86Panel, Zero).
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/u-boot.img \
+		$(STAGING_DIR_IMAGE)/rv1106-emmc-uboot.img
 else
 	# Stage u-boot.img (FIT format, d00dfeed magic) directly.
 	# The rkbin SD SPL (rv1106_spl_v1.02.bin) is a U-Boot SPL that expects

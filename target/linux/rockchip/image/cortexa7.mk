@@ -163,10 +163,10 @@ TARGET_DEVICES += plan44_p44-xx-pico-max
 define Device/luckfox_pico-max
   $(Device/Default-nandflash)
   DEVICE_TITLE := Luckfox Pico Max
-  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-max
+  SUPPORTED_DEVICES := rockchip,rv1106g-luckfox-pico-max
   SOC := rv1106
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1106g-luckfox-pico-pro-max
+  DEVICE_DTS := rv1106g-luckfox-pico-max
   UBOOT_DEVICE_NAME := rv1106-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
@@ -227,14 +227,204 @@ endef
 TARGET_DEVICES += luckfox_pico-86panel-w
 
 define Device/luckfox_pico
-  $(Device/Default-emmc)
+  $(Device/Default-sdcard)
   DEVICE_TITLE := Luckfox Pico
   SUPPORTED_DEVICES := luckfox,pico
   SOC := rv1103
   DEVICE_DTS := rv1103g-luckfox-pico
-  UBOOT_DEVICE_NAME := rv1106-emmc
+  UBOOT_DEVICE_NAME := rv1106-sd
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   IMAGES += sysupgrade.img.gz
-  IMAGE/sysupgrade.img.gz := env-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico
+
+define Device/luckfox_pico-plus
+  $(Device/Default-sdcard)
+  DEVICE_TITLE := Luckfox Pico Plus
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-plus
+  SOC := rv1103
+  DEVICE_DTS := rv1103g-luckfox-pico-plus
+  UBOOT_DEVICE_NAME := rv1106-sd
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-plus
+
+define Device/luckfox_pico-plus-nand
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Luckfox Pico Plus (NAND)
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-plus-nand
+  SOC := rv1103
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1103g-luckfox-pico-plus
+  UBOOT_DEVICE_NAME := rv1103-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip nandtest
+  KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
+  IMAGE/boot.img := append-kernel
+  IMAGE/env.img := env-rv1103-nand-img | rockchip-env-img
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  ARTIFACTS := idblock.img uboot.img loader.bin
+  ARTIFACT/idblock.img := rockchip-idblock-img
+  ARTIFACT/uboot.img := rockchip-uboot-img
+  ARTIFACT/loader.bin := rockchip-loader-bin
+endef
+TARGET_DEVICES += luckfox_pico-plus-nand
+
+define Device/luckfox_pico-webbee
+  $(Device/Default-sdcard)
+  DEVICE_TITLE := Luckfox Pico WebBee
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-webbee
+  SOC := rv1103
+  DEVICE_DTS := rv1103g-luckfox-pico-webbee
+  UBOOT_DEVICE_NAME := rv1106-sd
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-webbee
+
+define Device/luckfox_pico-webbee-nand
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Luckfox Pico WebBee (NAND)
+  SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-webbee-nand
+  SOC := rv1103
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1103g-luckfox-pico-webbee
+  UBOOT_DEVICE_NAME := rv1103-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip nandtest
+  KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
+  IMAGE/boot.img := append-kernel
+  IMAGE/env.img := env-rv1103-nand-img | rockchip-env-img
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  ARTIFACTS := idblock.img uboot.img loader.bin
+  ARTIFACT/idblock.img := rockchip-idblock-img
+  ARTIFACT/uboot.img := rockchip-uboot-img
+  ARTIFACT/loader.bin := rockchip-loader-bin
+endef
+TARGET_DEVICES += luckfox_pico-webbee-nand
+
+define Device/luckfox_pico-pro
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Luckfox Pico Pro
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pro
+  SOC := rv1106
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1106g-luckfox-pico-pro
+  UBOOT_DEVICE_NAME := rv1106-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-pro
+
+define Device/luckfox_pico-pro-max
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Luckfox Pico Pro Max
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pro-max
+  SOC := rv1106
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1106g-luckfox-pico-pro-max
+  UBOOT_DEVICE_NAME := rv1106-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-pro-max
+
+define Device/luckfox_pico-ultra
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico Ultra
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-ultra
+  SOC := rv1106
+  DEVICE_DTS := rv1106g-luckfox-pico-ultra
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-ultra
+
+define Device/luckfox_pico-ultra-w
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico Ultra W
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-ultra-w
+  SOC := rv1106
+  DEVICE_DTS := rv1106g-luckfox-pico-ultra-w
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-ultra-w
+
+define Device/luckfox_pico-pi
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico Pi
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pi
+  SOC := rv1106
+  DEVICE_DTS := rv1106g-luckfox-pico-pi
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-pi
+
+define Device/luckfox_pico-pi-w
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico Pi W
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pi-w
+  SOC := rv1106
+  DEVICE_DTS := rv1106g-luckfox-pico-pi-w
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-pi-w
+
+define Device/luckfox_pico-86panel
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico 86Panel
+  SUPPORTED_DEVICES := luckfox,rv1106g-luckfox-pico-86panel
+  SOC := rv1106g
+  DEVICE_DTS := rv1106g-luckfox-pico-86panel
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-86panel
+
+define Device/luckfox_pico-zero
+  $(Device/Default-emmc)
+  DEVICE_TITLE := Luckfox Pico Zero
+  SUPPORTED_DEVICES := luckfox,rv1106g-luckfox-pico-zero
+  SOC := rv1106g
+  DEVICE_DTS := rv1106g-luckfox-pico-zero
+  UBOOT_DEVICE_NAME := rv1106-emmc
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
+  IMAGES += sysupgrade.tar
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-zero
