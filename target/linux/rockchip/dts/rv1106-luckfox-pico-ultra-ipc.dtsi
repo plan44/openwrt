@@ -10,7 +10,7 @@
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk0p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel root=/dev/mmcblk0p5 rootfstype=squashfs,f2fs rw rootwait rk_dma_heap_cma=66M";
 	};
 
 	backlight: backlight {
@@ -196,6 +196,13 @@
 /************************* FIQ_DUBUGGER ****************************/
 &fiq_debugger {
 	rockchip,irq-mode-enable = <1>;
+	status = "disabled";
+};
+
+/* uart2 (8250) is the console — fiq-debugger has no upstream driver. uart2
+ * must be explicitly enabled so the 8250 driver claims its clock before
+ * clk_disable_unused() runs. */
+&uart2 {
 	status = "okay";
 };
 

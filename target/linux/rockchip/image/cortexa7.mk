@@ -60,15 +60,37 @@ define Build/nand-combined-img
 	mv $@.tmp $@
 endef
 
+define Build/emmc-combined-img
+	# Assemble a single flashable eMMC image. Offsets match blkdevparts in
+	# rv1106-uboot.env.emmc.txt (sector = 512 bytes):
+	#   env:     sector 0     (offset 0,      size 32K)
+	#   idblock: sector 64    (offset 32K,    size 512K)  idblock ~228K
+	#   uboot:   sector 1088  (offset 544K,   size 512K)  uboot ~308K
+	#   boot:    sector 2112  (offset 1056K,  size 32M)   kernel FIT ~4.6M
+	# Rootfs is appended at offset 33.03M by append-rootfs.
+	dd if=/dev/zero of=$@.tmp bs=512 count=67648
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-env.img     of=$@.tmp bs=512 seek=0    conv=notrunc
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-idblock.img of=$@.tmp bs=512 seek=64   conv=notrunc
+	dd if=$(STAGING_DIR_IMAGE)/$(UBOOT_DEVICE_NAME)-uboot.img   of=$@.tmp bs=512 seek=1088 conv=notrunc
+	dd if=$(IMAGE_KERNEL)                                        of=$@.tmp bs=512 seek=2112 conv=notrunc
+	mv $@.tmp $@
+endef
+
 DEFAULT_PACKAGES += gpiod-tools
 
 define Device/Default-emmc
   $(Device/Default-arm32)
   FILESYSTEMS := squashfs
-  IMAGES := boot.img rootfs.img env.img
+  KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
+  IMAGES := boot.img rootfs.img env.img emmc-flash.img
   IMAGE/rootfs.img := append-rootfs | pad-extra 128k
-  IMAGE/boot.img := resource-img | boot-arm-bin
+  IMAGE/boot.img := append-kernel
   IMAGE/env.img := env-rv1106-emmc-img | rockchip-env-img
+  IMAGE/emmc-flash.img := env-rv1106-emmc-img | emmc-combined-img | append-rootfs | pad-extra 128k
+  ARTIFACTS := idblock.img uboot.img loader.bin
+  ARTIFACT/idblock.img := rockchip-idblock-img
+  ARTIFACT/uboot.img := rockchip-uboot-img
+  ARTIFACT/loader.bin := rockchip-loader-bin
 endef
 
 define Device/Default-sdcard
@@ -206,8 +228,6 @@ define Device/luckfox_pico-86panel-w
   DEVICE_DTS := rv1106g-luckfox-pico-86panel-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
-  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
@@ -376,8 +396,6 @@ define Device/luckfox_pico-ultra
   DEVICE_DTS := rv1106g-luckfox-pico-ultra
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
@@ -391,8 +409,6 @@ define Device/luckfox_pico-ultra-w
   DEVICE_DTS := rv1106g-luckfox-pico-ultra-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
@@ -406,8 +422,6 @@ define Device/luckfox_pico-pi
   DEVICE_DTS := rv1106g-luckfox-pico-pi
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
@@ -421,8 +435,6 @@ define Device/luckfox_pico-pi-w
   DEVICE_DTS := rv1106g-luckfox-pico-pi-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
@@ -436,8 +448,6 @@ define Device/luckfox_pico-86panel
   DEVICE_DTS := rv1106g-luckfox-pico-86panel
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef
@@ -451,8 +461,6 @@ define Device/luckfox_pico-zero
   DEVICE_DTS := rv1106g-luckfox-pico-zero
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
 endef

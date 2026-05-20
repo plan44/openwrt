@@ -11,6 +11,12 @@
 	model = "Luckfox Pico Zero";
 	compatible = "luckfox,rv1106g-luckfox-pico-zero", "rockchip,rv1106g3";
 
+	/* TB SPL (CONFIG_SPL_KERNEL_BOOT=y) loads the kernel directly without
+	 * running U-Boot proper, so kernel bootargs must come from this node. */
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel root=/dev/mmcblk0p5 rootfstype=squashfs,f2fs rw rootwait rk_dma_heap_cma=66M";
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default";
@@ -61,6 +67,13 @@
 
 &fiq_debugger {
 	rockchip,irq-mode-enable = <1>;
+	status = "disabled";
+};
+
+/* uart2 (8250) is the console — fiq-debugger has no upstream driver. uart2
+ * must be explicitly enabled so the 8250 driver claims its clock before
+ * clk_disable_unused() runs. */
+&uart2 {
 	status = "okay";
 };
 
