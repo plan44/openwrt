@@ -451,18 +451,25 @@
 	status = "okay";
 };
 
+/* GT911 capacitive touch. The mainline goodix driver owns both reset-gpios and
+ * irq-gpios so it runs the controlled power-on reset that latches a deterministic
+ * I2C address (0x5d for the driver's INT-low sequence). */
 &i2c3 {
-    clock-frequency = <100000>;
-    GT911:touchscreen {
-      compatible = "goodix,gt911";
-      reg = <0x14>;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m2_xfer &tp_rst &tp_irq>;
+	clock-frequency = <100000>;
 
-      interrupt-parent = <&gpio0>;
-      interrupts = <RK_PA3 IRQ_TYPE_EDGE_FALLING>;
-
-      reset-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
-      pinctrl-names = "default";
-    };
+	touchscreen@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PA3 IRQ_TYPE_EDGE_FALLING>;
+		irq-gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 /**************************** PINCTRL ******************************/
@@ -484,11 +491,6 @@
 };
 &i2c2 {
 	pinctrl-0 = <&i2c2m0_xfer>;
-};
-&i2c3 {
-	pinctrl-names = "default", "config";
-	pinctrl-0 = <&i2c3m2_xfer &tp_rst &tp_irq>;
-	pinctrl-1 = <&i2c3m0_xfer &i2c3m1_xfer>;
 };
 &i2c4 {
 	pinctrl-names = "default", "config";

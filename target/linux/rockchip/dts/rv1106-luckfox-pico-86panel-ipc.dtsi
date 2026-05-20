@@ -285,27 +285,26 @@
 	status = "okay";
 };
 
-/* loading touchscreen automatically is unreliable, as i2c address of gt911 depends on irq signal level.
-   Therefore we do load this fragment explicitly later in the startup process
+/* GT911 capacitive touch. The mainline goodix driver owns both reset-gpios and
+ * irq-gpios so it runs the controlled power-on reset that latches a deterministic
+ * I2C address (0x5d for the driver's INT-low sequence). */
 &i2c3 {
-  #address-cells = <1>;
-  #size-cells = <0>;
 	status = "okay";
-  pinctrl-0 = <&i2c3m2_xfer &tp_rst &tp_irq>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m2_xfer &tp_rst &tp_irq>;
 	clock-frequency = <100000>;
-	GT911:touchscreen@14 {
-		compatible = "goodix,gt911";
-		reg = <0x14>;
 
+	touchscreen@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
 		interrupt-parent = <&gpio0>;
 		interrupts = <RK_PA0 IRQ_TYPE_EDGE_FALLING>;
-
-		reset-gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_LOW>;
-
-		pinctrl-names = "default";
+		irq-gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
 	};
 };
-*/
 
 /**************************** PINCTRL ******************************/
 &pinctrl {
