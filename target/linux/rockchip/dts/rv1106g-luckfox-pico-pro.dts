@@ -11,7 +11,8 @@
 
 / {
 	model = "Luckfox Pico Pro";
-	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1106";
+	/* Max is hardware-compatible (same peripherals, differs only in RAM size handled by DDR init blob) */
+	compatible = "luckfox,rv1106-luckfox-pico-pro", "rockchip,rv1106g-luckfox-pico-max", "rockchip,rv1106";
 };
 
 /**********FLASH**********/

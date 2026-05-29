@@ -10,8 +10,8 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/rgrizzell/uboot-luckfox.git
-PKG_SOURCE_DATE:=2026-04-19
-PKG_SOURCE_VERSION:=f230b8a7c75a0f844699a4d3314d62c03b13b1b8
+PKG_SOURCE_DATE:=2026-05-09
+PKG_SOURCE_VERSION:=b583b574ef8ae139d965cd00c0c4bd2194c7614a
 PKG_SOURCE:=uboot-luckfox-$(PKG_SOURCE_DATE)-$(PKG_SOURCE_VERSION).tar.zst
 PKG_MIRROR_HASH:=skip
 
@@ -29,7 +29,7 @@ define U-Boot/rv1106-sd
   NAME:=Luckfox Pico RV1106 SD
   UBOOT_CONFIG:=luckfox_rv1106_uboot
   DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1106
-  BUILD_DEVICES:=luckfox_pico-mini luckfox_pico luckfox_pico-plus luckfox_pico-webbee
+  BUILD_DEVICES:=luckfox_pico-mini luckfox_pico luckfox_pico-plus luckfox_pico-webbee luckfox_pico-pro luckfox_pico-max
 endef
 
 define U-Boot/rv1103-nand
@@ -45,7 +45,7 @@ define U-Boot/rv1106-nand
   NAME:=Luckfox Pico RV1106 SPI NAND
   UBOOT_CONFIG:=luckfox_rv1106_spi_nand_tb
   DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1106-nand
-  BUILD_DEVICES:=luckfox_pico-max luckfox_pico-pro luckfox_pico-pro-max
+  BUILD_DEVICES:=luckfox_pico-pro-nand luckfox_pico-max-nand
 endef
 
 define U-Boot/rv1106-emmc

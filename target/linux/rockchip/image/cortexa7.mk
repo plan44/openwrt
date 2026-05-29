@@ -60,6 +60,8 @@ define Build/nand-combined-img
 	mv $@.tmp $@
 endef
 
+DEFAULT_PACKAGES += gpiod-tools
+
 define Device/Default-emmc
   $(Device/Default-arm32)
   FILESYSTEMS := squashfs
@@ -160,21 +162,6 @@ endef
 TARGET_DEVICES += plan44_p44-xx-pico-max
 
 
-define Device/luckfox_pico-max
-  $(Device/Default-nandflash)
-  DEVICE_TITLE := Luckfox Pico Max
-  SUPPORTED_DEVICES := rockchip,rv1106g-luckfox-pico-max
-  SOC := rv1106
-  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1106g-luckfox-pico-max
-  UBOOT_DEVICE_NAME := rv1106-nand
-  DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin # that's what we need in the sysupgrade-tar
-  IMAGE/boot.img := append-kernel # override Default-emmc boot.img, otherwise kernel-bin will be wrapped twice
-  IMAGES += sysupgrade.tar
-  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
-endef
-TARGET_DEVICES += luckfox_pico-max
 
 define Device/luckfox_pico-mini
   $(Device/Default-sdcard)
@@ -258,14 +245,15 @@ define Device/luckfox_pico-plus-nand
   SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-plus-nand
   SOC := rv1103
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1103g-luckfox-pico-plus
+  DEVICE_DTS := rv1103g-luckfox-pico-plus-nand
   UBOOT_DEVICE_NAME := rv1103-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip nandtest
   KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
   IMAGE/boot.img := append-kernel
   IMAGE/env.img := env-rv1103-nand-img | rockchip-env-img
-  IMAGES += sysupgrade.tar
+  IMAGES += sysupgrade.tar nand-flash.img
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  IMAGE/nand-flash.img := env-rv1103-nand-img | nand-combined-img | append-ubi
   ARTIFACTS := idblock.img uboot.img loader.bin
   ARTIFACT/idblock.img := rockchip-idblock-img
   ARTIFACT/uboot.img := rockchip-uboot-img
@@ -292,14 +280,15 @@ define Device/luckfox_pico-webbee-nand
   SUPPORTED_DEVICES := luckfox,rv1103-luckfox-pico-webbee-nand
   SOC := rv1103
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1103g-luckfox-pico-webbee
+  DEVICE_DTS := rv1103g-luckfox-pico-webbee-nand
   UBOOT_DEVICE_NAME := rv1103-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip nandtest
   KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
   IMAGE/boot.img := append-kernel
   IMAGE/env.img := env-rv1103-nand-img | rockchip-env-img
-  IMAGES += sysupgrade.tar
+  IMAGES += sysupgrade.tar nand-flash.img
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  IMAGE/nand-flash.img := env-rv1103-nand-img | nand-combined-img | append-ubi
   ARTIFACTS := idblock.img uboot.img loader.bin
   ARTIFACT/idblock.img := rockchip-idblock-img
   ARTIFACT/uboot.img := rockchip-uboot-img
@@ -308,36 +297,76 @@ endef
 TARGET_DEVICES += luckfox_pico-webbee-nand
 
 define Device/luckfox_pico-pro
-  $(Device/Default-nandflash)
+  $(Device/Default-sdcard)
   DEVICE_TITLE := Luckfox Pico Pro
-  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pro
+  # Max is hardware-compatible (same peripherals, only RAM size differs — handled by DDR init blob)
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pro rockchip,rv1106g-luckfox-pico-max
   SOC := rv1106
-  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
   DEVICE_DTS := rv1106g-luckfox-pico-pro
-  UBOOT_DEVICE_NAME := rv1106-nand
+  UBOOT_DEVICE_NAME := rv1106-sd
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
-  IMAGE/boot.img := append-kernel
-  IMAGES += sysupgrade.tar
-  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
 endef
 TARGET_DEVICES += luckfox_pico-pro
 
-define Device/luckfox_pico-pro-max
+define Device/luckfox_pico-pro-nand
   $(Device/Default-nandflash)
-  DEVICE_TITLE := Luckfox Pico Pro Max
-  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pro-max
+  DEVICE_TITLE := Luckfox Pico Pro (NAND)
+  # Max is hardware-compatible (same peripherals, only RAM size differs — handled by DDR init blob)
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-pro-nand luckfox,rv1106-luckfox-pico-pro rockchip,rv1106g-luckfox-pico-max
   SOC := rv1106
   MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
-  DEVICE_DTS := rv1106g-luckfox-pico-pro-max
+  DEVICE_DTS := rv1106g-luckfox-pico-pro-nand
   UBOOT_DEVICE_NAME := rv1106-nand
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  KERNEL := kernel-bin | resource-img | boot-arm-bin
+  KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
   IMAGE/boot.img := append-kernel
-  IMAGES += sysupgrade.tar
+  IMAGE/env.img := env-rv1106-nand-img | rockchip-env-img
+  IMAGES += sysupgrade.tar nand-flash.img
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  IMAGE/nand-flash.img := env-rv1106-nand-img | nand-combined-img | append-ubi
+  ARTIFACTS := idblock.img uboot.img loader.bin
+  ARTIFACT/idblock.img := rockchip-idblock-img
+  ARTIFACT/uboot.img := rockchip-uboot-img
+  ARTIFACT/loader.bin := rockchip-loader-bin
 endef
-TARGET_DEVICES += luckfox_pico-pro-max
+TARGET_DEVICES += luckfox_pico-pro-nand
+
+define Device/luckfox_pico-max
+  $(Device/Default-sdcard)
+  DEVICE_TITLE := Luckfox Pico Max
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-max
+  SOC := rv1106
+  DEVICE_DTS := rv1106g-luckfox-pico-max
+  UBOOT_DEVICE_NAME := rv1106-sd
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+endef
+TARGET_DEVICES += luckfox_pico-max
+
+define Device/luckfox_pico-max-nand
+  $(Device/Default-nandflash)
+  DEVICE_TITLE := Luckfox Pico Max (NAND)
+  SUPPORTED_DEVICES := luckfox,rv1106-luckfox-pico-max-nand luckfox,rv1106-luckfox-pico-max
+  SOC := rv1106
+  MKUBIFS_OPTS := -m 2048 -e 124KiB -c 2114
+  DEVICE_DTS := rv1106g-luckfox-pico-max-nand
+  UBOOT_DEVICE_NAME := rv1106-nand
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  KERNEL := kernel-bin | resource-img | boot-arm-nand-tb-bin
+  IMAGE/boot.img := append-kernel
+  IMAGE/env.img := env-rv1106-nand-img | rockchip-env-img
+  IMAGES += sysupgrade.tar nand-flash.img
+  IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
+  IMAGE/nand-flash.img := env-rv1106-nand-img | nand-combined-img | append-ubi
+  ARTIFACTS := idblock.img uboot.img loader.bin
+  ARTIFACT/idblock.img := rockchip-idblock-img
+  ARTIFACT/uboot.img := rockchip-uboot-img
+  ARTIFACT/loader.bin := rockchip-loader-bin
+endef
+TARGET_DEVICES += luckfox_pico-max-nand
 
 define Device/luckfox_pico-ultra
   $(Device/Default-emmc)

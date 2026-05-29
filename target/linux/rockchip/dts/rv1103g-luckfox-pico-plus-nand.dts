@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (c) 2023 Luckfox Electronics Co., Ltd.
+ * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  */
 
 /dts-v1/;
@@ -10,11 +10,11 @@
 #include "rv1103-luckfox-pico-ipc.dtsi"
 
 / {
-	model = "Luckfox Pico Mini (NAND)";
-	compatible = "luckfox,rv1103-luckfox-pico-mini-nand", "luckfox,rv1103-luckfox-pico-mini-b", "rockchip,rv1103";
+	model = "Luckfox Pico Plus (NAND)";
+	compatible = "luckfox,rv1103-luckfox-pico-plus-nand", "luckfox,rv1103-luckfox-pico-plus", "rockchip,rv1103";
 
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel mtdparts=spi2.0:256K(env),256K@256K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel mtdparts=spi2.0:256K(env),512K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
 	};
 };
 
@@ -25,14 +25,12 @@
 };
 
 /**********SFC**********/
-/* Luckfox Pico Mini B has 128MB SPI NAND.
+/* Luckfox Pico Plus has 128MB SPI NAND.
  *
- * Partitions are declared via fixed-partitions rather than cmdline
- * mtdparts: U-Boot's MTD layer hardcodes the flash name as "spi-nand0"
- * (drivers/mtd/nand/spi/core.c) while Linux names it "spi2.0" (from
- * dev_name of the SPI parent), so a single mtdparts= string cannot
- * satisfy both. OF partitions make Linux create MTDs by label, which
- * lets ubi.mtd=ubi match regardless of the parent MTD name. */
+ * Partitions via fixed-partitions rather than cmdline mtdparts: U-Boot's
+ * MTD layer names the flash "spi-nand0" while Linux names it "spi2.0",
+ * so a single mtdparts= string cannot satisfy both. OF partitions create
+ * MTDs by label, letting ubi.mtd=ubi match regardless of MTD name. */
 &sfc {
 	status = "okay";
 	flash@0 {
@@ -86,11 +84,6 @@
 };
 
 /**********ETH**********/
-/* RV1103 has an integrated 10/100 EPHY; the Mini exposes only the MDI
- * differential pairs (TXP/TXN/RXP/RXN) on castellated pads. A carrier
- * board with external magnetics + RJ45 is required for a physical link.
- * The driver probes cleanly without magnetics (MDIO lives inside the SoC)
- * and the interface just reports link down until one is attached. */
 &gmac {
 	status = "okay";
 };
@@ -108,11 +101,20 @@
 	spidev@0 {
 		spi-max-frequency = <50000000>;
 	};
+	fbtft@0 {
+		spi-max-frequency = <50000000>;
+	};
 };
 
 /**********I2C**********/
 /* I2C3_M1 */
 &i2c3 {
+	status = "disabled";
+	clock-frequency = <100000>;
+};
+
+/* I2C0_M2 */
+&i2c0 {
 	status = "disabled";
 	clock-frequency = <100000>;
 };
