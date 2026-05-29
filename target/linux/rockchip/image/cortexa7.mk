@@ -228,7 +228,7 @@ define Device/luckfox_pico-86panel-w
   DEVICE_DTS := rv1106g-luckfox-pico-86panel-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware
+  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware aic8800-bt-attach bluez-daemon
   DEVICE_PACKAGES += iw-full wpad-mbedtls wireless-regdb wifi-scripts iwinfo
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
@@ -411,7 +411,7 @@ define Device/luckfox_pico-ultra-w
   DEVICE_DTS := rv1106g-luckfox-pico-ultra-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware
+  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware aic8800-bt-attach bluez-daemon
   DEVICE_PACKAGES += iw-full wpad-mbedtls wireless-regdb wifi-scripts iwinfo
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
@@ -439,7 +439,7 @@ define Device/luckfox_pico-pi-w
   DEVICE_DTS := rv1106g-luckfox-pico-pi-w
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware
+  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware aic8800-bt-attach bluez-daemon
   DEVICE_PACKAGES += iw-full wpad-mbedtls wireless-regdb wifi-scripts iwinfo
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata
@@ -467,7 +467,7 @@ define Device/luckfox_pico-zero
   DEVICE_DTS := rv1106g-luckfox-pico-zero
   UBOOT_DEVICE_NAME := rv1106-emmc
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
-  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware
+  DEVICE_PACKAGES += kmod-aic8800-bsp kmod-aic8800-wifi kmod-aic8800-bt aic8800-firmware aic8800-bt-attach bluez-daemon
   DEVICE_PACKAGES += iw-full wpad-mbedtls wireless-regdb wifi-scripts iwinfo
   IMAGES += sysupgrade.tar
   IMAGE/sysupgrade.tar := sysupgrade-tar | append-metadata

@@ -50,6 +50,20 @@ define Package/aic8800-firmware
   TITLE:=AIC8800DC firmware blobs
 endef
 
+define Package/aic8800-bt-attach
+  SECTION:=net
+  CATEGORY:=Network
+  TITLE:=AIC8800DC Bluetooth HCI UART attach
+  DEPENDS:=+kmod-aic8800-bt +bluez-utils
+endef
+
+define Package/aic8800-bt-attach/description
+  procd init script that attaches the AIC8800DC Bluetooth UART (uart1 /
+  /dev/ttyS1) to the kernel HCI H4 line discipline via hciattach, bringing
+  up hci0. The BSP powers BT on and loads its firmware over SDIO, so this
+  only binds the line discipline.
+endef
+
 KMAKE:= \
 	$(KERNEL_MAKE) $(PKG_JOBS) \
 	CONFIG_PLATFORM_ROCKCHIP=y \
@@ -76,7 +90,13 @@ define Package/aic8800-firmware/install
 	$(INSTALL_DATA) ./firmware/* $(1)/lib/firmware/aic8800dc_fw/
 endef
 
+define Package/aic8800-bt-attach/install
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/aic8800-bt.init $(1)/etc/init.d/aic8800-bt
+endef
+
 $(eval $(call KernelPackage,aic8800-bsp))
 $(eval $(call KernelPackage,aic8800-wifi))
 $(eval $(call KernelPackage,aic8800-bt))
 $(eval $(call BuildPackage,aic8800-firmware))
+$(eval $(call BuildPackage,aic8800-bt-attach))
