@@ -11,7 +11,7 @@
 
 / {
 	model = "Luckfox Pico Ultra W";
-	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1106g3";
+	compatible = "luckfox,rv1106-luckfox-pico-ultra-w", "rockchip,rv1106g3";
 
 	restart-poweroff {
 		compatible = "restart-poweroff";

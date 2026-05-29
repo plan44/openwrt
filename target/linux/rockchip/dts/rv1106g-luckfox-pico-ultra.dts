@@ -11,7 +11,7 @@
 
 / {
 	model = "Luckfox Pico Ultra";
-	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1106g3";
+	compatible = "luckfox,rv1106-luckfox-pico-ultra", "rockchip,rv1106g3";
 };
 
 /**********CRU**********/

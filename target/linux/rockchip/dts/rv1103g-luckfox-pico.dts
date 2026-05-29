@@ -11,7 +11,7 @@
 
 / {
 	model = "Luckfox Pico";
-	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1103";
+	compatible = "luckfox,pico", "rockchip,rv1103";
 
 	gpio4pa4:gpio4pa4 {
 		compatible = "regulator-fixed";
