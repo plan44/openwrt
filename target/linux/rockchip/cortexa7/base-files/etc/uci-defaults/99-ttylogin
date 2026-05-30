@@ -1,0 +1,9 @@
+# Require a login prompt on the serial/console instead of the default
+# passwordless auto-login as root (login.sh runs `login -f root` when
+# ttylogin is unset/0). Runs once on first boot. A root password must be
+# set (passwd) for the prompt to actually gate access.
+uci -q batch <<-UCI
+	set system.@system[0].ttylogin='1'
+	commit system
+UCI
+exit 0
