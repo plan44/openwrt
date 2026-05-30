@@ -205,7 +205,6 @@ define Device/femtofox
   SOC := rv1103
   DEVICE_DTS := rv1103g-femtofox
   UBOOT_DEVICE_NAME := rv1106-sd
-  DEVICE_PACKAGES += kmod-rtc-ds1307
   DEFAULT_PACKAGES += kmod-rknpu-rockchip
   IMAGES += sysupgrade.img.gz
   IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
