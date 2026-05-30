@@ -89,13 +89,19 @@
 
 /**********SPI0 — LoRa SX1262**********/
 /* Mux ONLY clk/miso/mosi. spi0m0_cs0 (GPIO48) is deliberately omitted so the
- * pin stays in GPIO function — the userspace LoRa daemon drives CS/Busy/IRQ/RXen/Reset via
- * libgpiod on gpiochip1. /dev/spidev0.0 still registers from the logical CS
- * index (spidev@0 with compatible="rockchip,spidev" comes from the ipc dtsi). */
+ * pin stays in GPIO function — the userspace LoRa daemon drives CS/Busy/IRQ/RXen/Reset
+ * via libgpiod on gpiochip1. The spidev@0 child is inherited from the ipc dtsi,
+ * but its compatible there ("rockchip,spidev") is a vendor string the mainline
+ * spidev driver does not match, so /dev/spidev0.0 never auto-binds. Override it
+ * to the canonical "rohm,dh2228fv" spidev compatible so the device binds at boot. */
 &spi0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0m0_clk &spi0m0_miso &spi0m0_mosi>;
 	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+	};
 };
 
 /**********I2C3 — DS3231 RTC**********/
