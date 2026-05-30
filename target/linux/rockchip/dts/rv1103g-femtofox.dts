@@ -134,8 +134,16 @@
 };
 
 /**********SARADC — BOOT button (adc-keys)**********/
-/* adc-keys node (saradc channel 0) is provided by rv1106-evb.dtsi. */
+/* adc-keys node (saradc channel 0) is provided by rv1106-evb.dtsi. The SoC
+ * node's compatible "rockchip,rv1106-saradc" is not in the linux-stable
+ * rockchip_saradc driver's match table, so the controller never binds and
+ * adc-keys defers forever. Add a fallback to "rockchip,rk3588-saradc": the
+ * vendor rv1106 SARADC uses the v2 start/read register path with no
+ * power_down callback, which matches rk3588_saradc_data exactly (rk3568 is
+ * the v1 path). Keep the SoC-accurate compatible first so a future driver
+ * with a real rv1106 entry takes precedence. */
 &saradc {
+	compatible = "rockchip,rv1106-saradc", "rockchip,rk3588-saradc";
 	status = "okay";
 };
 
