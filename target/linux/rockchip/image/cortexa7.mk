@@ -198,6 +198,20 @@ define Device/luckfox_pico-mini
 endef
 TARGET_DEVICES += luckfox_pico-mini
 
+define Device/femtofox
+  $(Device/Default-sdcard)
+  DEVICE_TITLE := Femtofox Pro
+  SUPPORTED_DEVICES := femtofox,rv1103-femtofox-pro luckfox,rv1103-luckfox-pico-mini-a
+  SOC := rv1103
+  DEVICE_DTS := rv1103g-femtofox
+  UBOOT_DEVICE_NAME := rv1106-sd
+  DEVICE_PACKAGES += kmod-rtc-ds1307
+  DEFAULT_PACKAGES += kmod-rknpu-rockchip
+  IMAGES += sysupgrade.img.gz
+  IMAGE/sysupgrade.img.gz := env-rv1106-sd-img | rockchip32-legacy-bin | append-rootfs | pad-extra 128k | gzip | append-metadata
+endef
+TARGET_DEVICES += femtofox
+
 define Device/luckfox_pico-mini-nand
   $(Device/Default-nandflash)
   DEVICE_TITLE := Luckfox Pico Mini (NAND)
