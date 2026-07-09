@@ -29,7 +29,7 @@ define U-Boot/rv1106-sd
   NAME:=Luckfox Pico RV1106 SD
   UBOOT_CONFIG:=luckfox_rv1106_uboot
   DEPENDS:=+PACKAGE_u-boot-$(1):trusted-firmware-a-rv1106
-  BUILD_DEVICES:=luckfox_pico-mini luckfox_pico luckfox_pico-plus luckfox_pico-webbee luckfox_pico-pro luckfox_pico-max
+  BUILD_DEVICES:=femtofox luckfox_pico-mini luckfox_pico luckfox_pico-plus luckfox_pico-webbee luckfox_pico-pro luckfox_pico-max
 endef
 
 define U-Boot/rv1103-nand
