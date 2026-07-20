@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
+ */
+
+/dts-v1/;
+
+#include "rv1106.dtsi"
+#include "rv1106-evb.dtsi"
+#include "rv1106-luckfox-pico-pro-max-ipc.dtsi"
+
+/ {
+	model = "Luckfox Pico Pro (NAND)";
+	/* Max is hardware-compatible (same peripherals, differs only in RAM size handled by DDR init blob) */
+	compatible = "luckfox,rv1106-luckfox-pico-pro-nand", "luckfox,rv1106-luckfox-pico-pro", "rockchip,rv1106g-luckfox-pico-max", "rockchip,rv1106";
+
+	/* Override ipc.dtsi bootargs: TB SPL loads the kernel directly (no U-Boot proper),
+	 * so the kernel reads bootargs from this chosen node — it cannot be set via env. */
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=40M";
+	};
+};
+
+/**********FLASH**********/
+/* Partitions declared via fixed-partitions so Linux creates MTDs by label.
+ * U-Boot names the flash "spi-nand0" while Linux uses the SPI bus name;
+ * label-based ubi.mtd=ubi matching works regardless of the parent MTD name. */
+&sfc {
+	status = "okay";
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-max-frequency = <75000000>;
+		spi-rx-bus-width = <4>;
+		spi-tx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "env";
+				reg = <0x000000 0x040000>;
+			};
+			partition@40000 {
+				label = "idblock";
+				reg = <0x040000 0x080000>;
+			};
+			partition@c0000 {
+				label = "uboot";
+				reg = <0x0c0000 0x080000>;
+			};
+			partition@140000 {
+				label = "boot";
+				reg = <0x140000 0x600000>;
+			};
+			partition@740000 {
+				label = "ubi";
+				reg = <0x740000 0x78c0000>;
+			};
+		};
+	};
+};
+
+/**********SDMMC**********/
+&sdmmc {
+	max-frequency = <50000000>;
+	no-sdio;
+	no-mmc;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_det &sdmmc0_bus4>;
+	status = "okay";
+};
+
+/**********ETH**********/
+&gmac {
+	status = "okay";
+};
+
+/**********USB**********/
+&u2phy {
+	status = "okay";
+};
+
+&u2phy_otg {
+	rockchip,dis-u2-susphy;
+	status = "okay";
+};
+
+&usbdrd {
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	status = "okay";
+	dr_mode = "peripheral";
+};
+
+/**********SPI**********/
+&spi0 {
+	status = "disabled";
+	spidev@0 {
+		spi-max-frequency = <50000000>;
+	};
+  fbtft@0 {
+		spi-max-frequency = <50000000>;
+  };
+};
+
+/**********I2C**********/
+/* I2C3_M1 */
+&i2c3 {
+	status = "disabled";
+	clock-frequency = <100000>;
+};
+
+/* I2C1_M1 */
+&i2c1 {
+	status = "disabled";
+	clock-frequency = <100000>;
+};
+
+/**********UART**********/
+/* UART2_M1 — debug console; must be enabled so the 8250 driver claims the
+ * UART2 clock before clk_disable_unused() runs, keeping the console alive. */
+&uart2 {
+	status = "okay";
+};
+
+/* UART3_M1 */
+&uart3 {
+	status = "disabled";
+};
+
+/* UART4_M1 */
+&uart4 {
+	status = "disabled";
+};
+
+/**********RTC**********/
+&rtc {
+	status = "okay";
+};

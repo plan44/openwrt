@@ -24,13 +24,6 @@
 	status = "disabled";
 };
 
-/* Mini B has no buttons on SARADC channel 0. Floating pin reads below the
- * keyup threshold, which U-Boot interprets as the volume-up (download)
- * key being pressed — diverting boot into rockusb download mode. */
-&{/adc-keys} {
-	status = "disabled";
-};
-
 /**********SFC**********/
 /* Luckfox Pico Mini B has 128MB SPI NAND.
  *

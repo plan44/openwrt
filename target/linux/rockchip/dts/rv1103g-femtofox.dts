@@ -1,0 +1,157 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Femtofox Pro — custom carrier around the Luckfox Pico Mini A (RV1103),
+ * SD-card boot. Peripherals: onboard Ethernet (magnetics+RJ45), USB host,
+ * Ebyte E22-900M30S LoRa (SX1262) on spi0, DS3231 RTC on i2c3, UART4 header,
+ * user LED (GPIO34), BOOT button (adc-key on SARADC0).
+ *
+ * Derived from rv1103g-luckfox-pico-mini.dts. Overrides happen only through
+ * &-references so the Luckfox board definitions stay untouched.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include "rv1103.dtsi"
+#include "rv1106-evb.dtsi"
+#include "rv1103-luckfox-pico-ipc.dtsi"
+
+/ {
+	model = "Femtofox Pro";
+	compatible = "femtofox,rv1103-femtofox-pro",
+		     "luckfox,rv1103-luckfox-pico-mini-a",
+		     "rockchip,rv1103";
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,115200n8 loglevel=8 ignore_loglevel";
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		user_led: led-user {
+			label = "femtofox:green:user";
+			gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+	};
+};
+
+/* vendor-only, no upstream driver — silences a fwnode-link boot warning */
+&fiq_debugger {
+	status = "disabled";
+};
+
+/**********SFC**********/
+/* Mini A has no onboard flash; the spi-nand probe fails harmlessly. Pinctrl
+ * is required on SD boot because rkbin only muxes SFC pins for NAND boot. */
+&sfc {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&fspi_pins &fspi_cs0>;
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-max-frequency = <75000000>;
+		spi-rx-bus-width = <4>;
+		spi-tx-bus-width = <1>;
+	};
+};
+
+/**********SDMMC**********/
+&sdmmc {
+	max-frequency = <50000000>;
+	no-sdio;
+	no-mmc;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_det &sdmmc0_bus4>;
+	status = "okay";
+};
+
+/**********ETH**********/
+/* Femtofox has onboard magnetics + RJ45, so this is a real, link-capable port. */
+&gmac {
+	status = "okay";
+};
+
+/**********USB (host)**********/
+/* Host port for USB WiFi dongle / mass storage. Unlike the Mini (which forces
+ * peripheral mode for gadget networking), keep the INNO USB2 PHY references
+ * intact and force host. &u2phy/&u2phy_otg/&usbdrd are enabled in rv1106-evb.dtsi. */
+&usbdrd_dwc3 {
+	dr_mode = "host";
+	status = "okay";
+};
+
+/**********SPI0 — LoRa SX1262**********/
+/* Mux ONLY clk/miso/mosi. spi0m0_cs0 (GPIO48) is deliberately omitted so the
+ * pin stays in GPIO function — the userspace LoRa daemon drives CS/Busy/IRQ/RXen/Reset
+ * via libgpiod on gpiochip1. The spidev@0 child is inherited from the ipc dtsi,
+ * but its compatible there ("rockchip,spidev") is a vendor string the mainline
+ * spidev driver does not match, so /dev/spidev0.0 never auto-binds. Override it
+ * to the canonical "rohm,dh2228fv" spidev compatible so the device binds at boot. */
+&spi0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi0m0_clk &spi0m0_miso &spi0m0_mosi>;
+	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+	};
+};
+
+/**********I2C3 — DS3231 RTC**********/
+/* i2c3m1 (SDA=GPIO58 / SCL=GPIO59); pinctrl inherited from the ipc dtsi. */
+&i2c3 {
+	status = "okay";
+	clock-frequency = <100000>;
+
+	ds3231: rtc@68 {
+		compatible = "maxim,ds3231";
+		reg = <0x68>;
+	};
+};
+
+/**********UART**********/
+/* UART2_M1 — debug console; keep enabled so the 8250 driver claims the clock
+ * before clk_disable_unused() runs. */
+&uart2 {
+	status = "okay";
+};
+
+/* UART4_M1 — JST PH header (pinctrl uart4m1_xfer inherited from ipc dtsi). */
+&uart4 {
+	status = "okay";
+};
+
+/* UART3 stays disabled — GPIO56/57 are LoRa RXen/Reset, not UART. */
+&uart3 {
+	status = "disabled";
+};
+
+/**********SARADC — BOOT button (adc-keys)**********/
+/* adc-keys node (saradc channel 0) is provided by rv1106-evb.dtsi. The SoC
+ * node's compatible "rockchip,rv1106-saradc" is not in the linux-stable
+ * rockchip_saradc driver's match table, so the controller never binds and
+ * adc-keys defers forever. Add a fallback to "rockchip,rk3588-saradc": the
+ * vendor rv1106 SARADC uses the v2 start/read register path with no
+ * power_down callback, which matches rk3588_saradc_data exactly (rk3568 is
+ * the v1 path). Keep the SoC-accurate compatible first so a future driver
+ * with a real rv1106 entry takes precedence. */
+&saradc {
+	compatible = "rockchip,rv1106-saradc", "rockchip,rk3588-saradc";
+	status = "okay";
+};
+
+/* No onboard camera; sensors in the ipc dtsi both claim i2c4 0x30 (-EBUSY). */
+&sc4336 {
+	status = "disabled";
+};
+
+&sc530ai {
+	status = "disabled";
+};

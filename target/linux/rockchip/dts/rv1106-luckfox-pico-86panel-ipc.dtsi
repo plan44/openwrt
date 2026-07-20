@@ -10,7 +10,7 @@
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,115200 root=/dev/mmcblk0p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel root=/dev/mmcblk0p5 rootfstype=squashfs,f2fs rw rootwait rk_dma_heap_cma=66M";
 	};
 
 	backlight: backlight {
@@ -54,40 +54,49 @@
 	};
 
 	panel: panel {
-		compatible = "simple-panel";
+		/*
+		 * Mainline panel-simple matches "panel-dpi" for the generic
+		 * raw-RGB-with-timing case; the vendor's "simple-panel"
+		 * compatible isn't bound by any upstream driver. panel-dpi
+		 * expects a flat "panel-timing" subnode (not the
+		 * display-timings/native-mode wrapper).
+		 */
+		compatible = "panel-dpi";
 		backlight = <&backlight>;
 
-		reset-gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_LOW>;
-		reset-delay-ms = <200>;
+		/*
+		 * Mainline panel-simple looks up "enable" (not "reset") and
+		 * drives it high during resume/prepare to bring the panel
+		 * out of reset. The vendor "reset-delay-ms" is not read by
+		 * panel-dpi -- if a settling delay is needed we'd have to
+		 * extend panel-dpi itself.
+		 */
+		enable-gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 
-		bus-format = <MEDIA_BUS_FMT_RGB666_1X18>;
 		width-mm = <85>;
 		height-mm = <85>;
+		bus-format = <MEDIA_BUS_FMT_RGB666_1X18>;
 
-		display-timings {
-			native-mode = <&timing0>;
-
-			timing0: timing0 {
-				clock-frequency = <30000000>;
-				hactive = <720>;
-				vactive = <720>;
-				hback-porch = <44>;
-				hfront-porch = <46>;
-				vback-porch = <18>;
-				vfront-porch = <16>;
-				hsync-len = <2>;
-				vsync-len = <2>;
-				hsync-active = <0>;
-				vsync-active = <0>;
-				de-active = <0>;
-				pixelclk-active = <0>;
-			};
+		panel-timing {
+			clock-frequency = <30000000>;
+			hactive = <720>;
+			vactive = <720>;
+			hback-porch = <44>;
+			hfront-porch = <46>;
+			vback-porch = <18>;
+			vfront-porch = <16>;
+			hsync-len = <2>;
+			vsync-len = <2>;
+			hsync-active = <0>;
+			vsync-active = <0>;
+			de-active = <0>;
+			pixelclk-active = <0>;
 		};
 
 		port {
 			panel_in_rgb: endpoint {
-				remote-endpoint = <&rgb_out_panel>;
+				remote-endpoint = <&vop_out_rgb>;
 			};
 		};
 	};
@@ -195,6 +204,13 @@
 /************************* FIQ_DUBUGGER ****************************/
 &fiq_debugger {
 	rockchip,irq-mode-enable = <1>;
+	status = "disabled";
+};
+
+/* uart2 (8250) is the console — fiq-debugger has no upstream driver. uart2
+ * must be explicitly enabled so the 8250 driver claims its clock before
+ * clk_disable_unused() runs. */
+&uart2 {
 	status = "okay";
 };
 
@@ -238,7 +254,14 @@
 /**************************** LCD/TP ******************************/
 &pwm1 {
 	status = "okay";
-	pinctrl-names = "active";
+	/*
+	 * The platform bus auto-applies only the pinctrl state named "default".
+	 * The upstream pwm-rockchip driver in 6.6 doesn't explicitly select
+	 * any other named state, so the vendor's "active" was silently inert
+	 * here -- pwm1m2 stayed unmuxed and the PWM signal never reached the
+	 * backlight pad. Rename to "default" so the framework applies it.
+	 */
+	pinctrl-names = "default";
 	pinctrl-0 = <&pwm1m2_pins>;
 };
 
@@ -247,27 +270,28 @@
 	logo-memory-region = <&drm_logo>;
 };
 
-&rgb {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&lcd_pins>;
-
-	ports {
-		rgb_out: port@1 {
-			reg = <1>;
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			rgb_out_panel: endpoint@0 {
-				reg = <0>;
-				remote-endpoint = <&panel_in_rgb>;
-			};
-		};
-	};
+/*
+ * In 6.6 the rockchip_rgb driver is a library called from vop_bind when the
+ * VOP advertises VOP_FEATURE_INTERNAL_RGB; the standalone rgb-node pattern
+ * the vendor 5.10 SDK used was removed. drm_of_find_panel_or_bridge walks
+ * exactly one remote-endpoint hop from the VOP, so the panel must be the
+ * direct neighbor -- the rgb middleman has to be bypassed.
+ *
+ * Rewire panel_in_rgb to point at vop_out_rgb directly, override
+ * vop_out_rgb's remote-endpoint to point at panel_in_rgb, and move the
+ * lcd_pins pinmux from &rgb (which never probes any more) to &vop (which
+ * does, and is the right owner of the parallel-RGB pads anyway).
+ */
+&panel_in_rgb {
+	remote-endpoint = <&vop_out_rgb>;
 };
 
-&rgb_in_vop {
-	status = "okay";
+&vop_out_rgb {
+	remote-endpoint = <&panel_in_rgb>;
+};
+
+&rgb {
+	status = "disabled";
 };
 
 &route_rgb {
@@ -276,29 +300,30 @@
 
 &vop {
 	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&lcd_pins>;
 };
 
-/* loading touchscreen automatically is unreliable, as i2c address of gt911 depends on irq signal level.
-   Therefore we do load this fragment explicitly later in the startup process
+/* GT911 capacitive touch. The mainline goodix driver owns both reset-gpios and
+ * irq-gpios so it runs the controlled power-on reset that latches a deterministic
+ * I2C address (0x5d for the driver's INT-low sequence). */
 &i2c3 {
-  #address-cells = <1>;
-  #size-cells = <0>;
 	status = "okay";
-  pinctrl-0 = <&i2c3m2_xfer &tp_rst &tp_irq>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m2_xfer &tp_rst &tp_irq>;
 	clock-frequency = <100000>;
-	GT911:touchscreen@14 {
-		compatible = "goodix,gt911";
-		reg = <0x14>;
 
+	touchscreen@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
 		interrupt-parent = <&gpio0>;
 		interrupts = <RK_PA0 IRQ_TYPE_EDGE_FALLING>;
-
-		reset-gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_LOW>;
-
-		pinctrl-names = "default";
+		irq-gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
 	};
 };
-*/
 
 /**************************** PINCTRL ******************************/
 &pinctrl {

@@ -1,0 +1,50 @@
+#
+# Copyright (C) 2026 OpenWrt.org
+#
+[ -e /etc/config/ubootenv ] && exit 0
+
+touch /etc/config/ubootenv
+
+. /lib/uboot-envtools.sh
+. /lib/functions.sh
+
+board=$(board_name)
+
+case "$board" in
+# SPI-NAND boot: U-Boot env is the 256K "env" MTD partition (mtd0; 128K
+# erase block).
+luckfox,rv1103-luckfox-pico-mini-nand|\
+luckfox,rv1103-luckfox-pico-plus-nand|\
+luckfox,rv1103-luckfox-pico-webbee-nand|\
+luckfox,rv1106-luckfox-pico-pro-nand|\
+luckfox,rv1106-luckfox-pico-max-nand)
+	ubootenv_add_uci_config "/dev/mtd0" "0x0" "0x40000" "0x20000" "0x2"
+	;;
+# SD-card boot: U-Boot env is 32K at offset 0 of the SD card. The SD
+# controller (&sdmmc) is alias mmc1, so the card enumerates as mmcblk1.
+luckfox,pico|\
+luckfox,rv1103-luckfox-pico-mini-a|\
+luckfox,rv1103-luckfox-pico-mini-b|\
+luckfox,rv1103-luckfox-pico-plus|\
+luckfox,rv1103-luckfox-pico-webbee|\
+luckfox,rv1106-luckfox-pico-pro|\
+luckfox,rv1106-luckfox-pico-max)
+	ubootenv_add_uci_config "/dev/mmcblk1" "0x0" "0x8000"
+	;;
+# eMMC boot: U-Boot env is 32K at offset 0 of the eMMC. The eMMC (&emmc)
+# is alias mmc0, so it enumerates as mmcblk0.
+luckfox,rv1106-luckfox-pico-pi|\
+luckfox,rv1106-luckfox-pico-pi-w|\
+luckfox,rv1106-luckfox-pico-ultra|\
+luckfox,rv1106-luckfox-pico-ultra-w|\
+luckfox,rv1106g-luckfox-pico-86panel|\
+luckfox,rv1106g-luckfox-pico-zero|\
+rockchip,rv1106g-luckfox-pico-86panel-w)
+	ubootenv_add_uci_config "/dev/mmcblk0" "0x0" "0x8000"
+	;;
+esac
+
+config_load ubootenv
+config_foreach ubootenv_add_app_config
+
+exit 0

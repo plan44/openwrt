@@ -1,0 +1,116 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
+ */
+
+/dts-v1/;
+
+#include "rv1103.dtsi"
+#include "rv1106-evb.dtsi"
+#include "rv1103-luckfox-pico-ipc.dtsi"
+
+/ {
+	model = "Luckfox Pico WebBee (NAND)";
+	compatible = "luckfox,rv1103-luckfox-pico-webbee-nand", "luckfox,rv1103-luckfox-pico-webbee", "rockchip,rv1103";
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyS2,1500000n8 loglevel=8 ignore_loglevel mtdparts=spi2.0:256K(env),512K(idblock),512K(uboot),6M@1280K(boot),-(ubi) ubi.mtd=ubi ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=squashfs ro rootwait rk_dma_heap_cma=24M";
+	};
+};
+
+/* fiq-debugger is a vendor-only feature with no upstream driver; disable to
+ * suppress "Dropping the fwnode link to /interrupt-controller" at boot. */
+&fiq_debugger {
+	status = "disabled";
+};
+
+/**********SFC**********/
+/* Luckfox Pico WebBee has 128MB SPI NAND.
+ *
+ * Partitions via fixed-partitions rather than cmdline mtdparts: U-Boot's
+ * MTD layer names the flash "spi-nand0" while Linux names it "spi2.0",
+ * so a single mtdparts= string cannot satisfy both. OF partitions create
+ * MTDs by label, letting ubi.mtd=ubi match regardless of MTD name. */
+&sfc {
+	status = "okay";
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-max-frequency = <75000000>;
+		spi-rx-bus-width = <4>;
+		spi-tx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "env";
+				reg = <0x000000 0x040000>;
+			};
+			partition@40000 {
+				label = "idblock";
+				reg = <0x040000 0x080000>;
+			};
+			partition@c0000 {
+				label = "uboot";
+				reg = <0x0c0000 0x080000>;
+			};
+			partition@140000 {
+				label = "boot";
+				reg = <0x140000 0x600000>;
+			};
+			partition@740000 {
+				label = "ubi";
+				reg = <0x740000 0x78c0000>;
+			};
+		};
+	};
+};
+
+/**********SDMMC**********/
+&sdmmc {
+	max-frequency = <50000000>;
+	no-sdio;
+	no-mmc;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_det &sdmmc0_bus4>;
+	status = "okay";
+};
+
+/**********ETH**********/
+&gmac {
+	status = "okay";
+};
+
+/**********USB**********/
+&usbdrd_dwc3 {
+	status = "okay";
+	dr_mode = "peripheral";
+};
+
+/**********CSI**********/
+&i2c4 {
+	status = "disabled";
+};
+
+/********AUDIO**********/
+&i2s0_8ch {
+	status = "disabled";
+};
+
+&acodec {
+	status = "disabled";
+};
+
+/**********UART**********/
+/* UART2_M1 — debug console; must be enabled so the 8250 driver claims the
+ * UART2 clock before clk_disable_unused() runs, keeping the console alive. */
+&uart2 {
+	status = "okay";
+};

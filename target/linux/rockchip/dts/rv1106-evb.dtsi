@@ -100,6 +100,10 @@
 	status = "okay";
 };
 
+&saradc {
+	status = "okay";
+};
+
 &usbdrd_dwc3 {
 	extcon = <&u2phy>;
 	status = "okay";

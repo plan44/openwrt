@@ -11,7 +11,7 @@
 
 / {
 	model = "Luckfox Pico Pi";
-	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1106g3";
+	compatible = "luckfox,rv1106-luckfox-pico-pi", "rockchip,rv1106g3";
 
 	restart-poweroff {
 		compatible = "restart-poweroff";
@@ -58,7 +58,7 @@
 
 &fiq_debugger {
 	rockchip,irq-mode-enable = <1>;
-	status = "okay";
+	status = "disabled";
 };
 
 /**********SD_CARD**********/
