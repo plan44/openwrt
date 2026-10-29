@@ -12,6 +12,11 @@ BUILD_DIR := $(KERNEL_BUILD_DIR)
 override QUILT:=
 override HOST_QUILT:=
 
+# Userspace headers must be prepared in the private toolchain build tree.
+# Kernel/Prepare/Default would otherwise link and modify the external source.
+# Preserve the literal Kconfig empty string expected by kernel-defaults.mk.
+override CONFIG_EXTERNAL_KERNEL_TREE:=""
+
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=linux

@@ -35,3 +35,9 @@ git-src
 .cproject
 .ccache
 .vscode*
+# p44build additions
+/patches
+/.pc
+/.p44build
+/p44b
+/.toolchain-bootstrap.lock

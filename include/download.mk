@@ -73,7 +73,7 @@ define check_download_integrity
   $$(if $$(and $(FILE),$$(wildcard $(DL_DIR)/$(FILE)), \
 	       $$(filter undefined,$$(flavor DownloadChecked/$(FILE)))), \
     $$(eval DownloadChecked/$(FILE):=1) \
-    $$(if $$(filter-out $$(call gen_sha256sum,$(FILE)),$$(expected_hash)), \
+    $$(if $$(filter-out skip $$(call gen_sha256sum,$(FILE)),$$(expected_hash)), \
       $(DL_DIR)/$(FILE): FORCE) \
   )
 endef
@@ -237,11 +237,14 @@ define DownloadMethod/rawgit
 	rm -rf $(SUBDIR) && \
 	[ \! -d $(SUBDIR) ] && \
 	git clone $(OPTS) $(URL) $(SUBDIR) && \
-	(cd $(SUBDIR) && git checkout $(SOURCE_VERSION)) && \
+	(cd $(SUBDIR) && git checkout $(SOURCE_VERSION) && \
+	printf '%s\n' "$(URL)" >.gitdownload_url && \
+	printf '%s\n' "$(SOURCE_VERSION)" >.gitdownload_version && \
+	git rev-parse HEAD >.gitdownload_rev) && \
 	export TAR_TIMESTAMP=`cd $(SUBDIR) && git log -1 --no-show-signature --format='@%ct'` && \
 	echo "Generating formal git archive (apply .gitattributes rules)" && \
 	(cd $(SUBDIR) && git config core.abbrev 8 && \
-	git archive --format=tar HEAD --output=../$(SUBDIR).tar.git) && \
+	git archive --format=tar HEAD --output=../$(SUBDIR).tar.git --add-file=.gitdownload_rev --add-file=.gitdownload_version --add-file=.gitdownload_url) && \
 	$(if $(filter skip,$(SUBMODULES)),true, \
 		$(TAR) --numeric-owner --owner=0 --group=0 --ignore-failed-read -C $(SUBDIR) -f $(SUBDIR).tar.git -r .git .gitmodules 2>/dev/null \
 	) && \

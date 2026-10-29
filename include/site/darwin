@@ -1,2 +1,6 @@
 ac_cv_func_futimens=no
 ac_cv_func_utimensat=no
+
+# Newer SDKs weak-link pipe2 even when the running macOS lacks it.
+# Force the portable fallback rather than accepting a link-only probe.
+ac_cv_func_pipe2=no
