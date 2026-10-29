@@ -7,6 +7,7 @@ DEVICE_VARS += UBOOT_DEVICE_NAME
 
 define Build/Compile
 	$(CP) $(LINUX_DIR)/COPYING $(KDIR)/COPYING.linux
+	$(if $(filter cortexa7,$(SUBTARGET)),$(HOSTCC) $(HOST_CFLAGS) -o $(KDIR)/omega4-resource-tool rv1103b/resource_tool.c $(HOST_LDFLAGS))
 endef
 
 ### Image scripts ###
