@@ -228,6 +228,9 @@ endef
 #
 # We first clone, checkout and then we generate a tar using the
 # git archive command to apply any rules of .gitattributes
+# Embed p44build revision tracking only for archives without a fixed mirror
+# hash (development packages normally use MIRROR_HASH=skip). Extra files would
+# change checksum-pinned upstream archives.
 # To keep consistency with github generated tar archive, we default
 # the short hash to 8 (default is 7). (for git log related usage)
 define DownloadMethod/rawgit
@@ -244,7 +247,7 @@ define DownloadMethod/rawgit
 	export TAR_TIMESTAMP=`cd $(SUBDIR) && git log -1 --no-show-signature --format='@%ct'` && \
 	echo "Generating formal git archive (apply .gitattributes rules)" && \
 	(cd $(SUBDIR) && git config core.abbrev 8 && \
-	git archive --format=tar HEAD --output=../$(SUBDIR).tar.git --add-file=.gitdownload_rev --add-file=.gitdownload_version --add-file=.gitdownload_url) && \
+	git archive --format=tar HEAD --output=../$(SUBDIR).tar.git $(if $(filter-out skip x,$(MIRROR_HASH)),,--add-file=.gitdownload_rev --add-file=.gitdownload_version --add-file=.gitdownload_url)) && \
 	$(if $(filter skip,$(SUBMODULES)),true, \
 		$(TAR) --numeric-owner --owner=0 --group=0 --ignore-failed-read -C $(SUBDIR) -f $(SUBDIR).tar.git -r .git .gitmodules 2>/dev/null \
 	) && \
