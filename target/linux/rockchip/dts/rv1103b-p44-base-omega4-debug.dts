@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Temporary PIO serial-debug variant of the production P44 Omega4 tree.
+ * UART0 M0 conflicts with the product OLED/I2C0 M0 pins. Do not use this
+ * variant with overlays claiming those pins; use the production DT instead.
+ */
+#include "rv1103b-p44-base-omega4.dts"
+
+/ {
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+};
+
+&fiq_debugger {
+	status = "disabled";
+};
+
+&uart0 {
+	status = "okay";
+	/* The RV1103B DMA controller is not yet ported; console uses PIO. */
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
+};

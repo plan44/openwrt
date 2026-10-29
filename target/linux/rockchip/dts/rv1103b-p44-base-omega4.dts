@@ -1,0 +1,144 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
+ * Copyright (c) 2025 plan44.ch/luz
+ * Copyright (c) 2025 Onion Corporation
+ */
+
+/dts-v1/;
+
+#include "rv1103b.dtsi"
+#include "rv1103b-pinctrl.dtsi"
+#include "rv1103b-omega4.dtsi"
+
+/ {
+	model = "plan44 omega4 baseboard";
+	compatible = "plan44,rv1103b-p44-base-omega4", "rockchip,rv1103b";
+
+	aliases {
+		led-boot = &sys_led;
+		led-failsafe = &sys_led;
+		led-running = &sys_led;
+		led-upgrade = &sys_led;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		sys_led: sys-led {
+		  /* gpio1_A6 is the LED on p44-xx-base-omega4 */
+			gpios = <&gpio1 RK_PA6 GPIO_ACTIVE_LOW>;
+			label = "sys";
+			default-state = "on";
+		};
+	};
+
+	// vcc3v3_sd: vcc3v3-sd {
+	// 	compatible = "regulator-fixed";
+	// 	regulator-name = "vcc3v3_sd";
+	// 	regulator-min-microvolt = <3300000>;
+	// 	regulator-max-microvolt = <3300000>;
+	// 	regulator-boot-on;
+	// 	regulator-always-on;
+	// 	vin-supply = <&vcc_3v3>;
+	// };
+
+};
+
+
+
+/* prevent the ethernet driver use the LEDs (we have no LEDs, but need G2_A6/A7 for other purposes!) */
+
+&rmii_phy {
+  //pinctrl-names = "default";
+  //pinctrl-0 = <&eth_led_link_pins &eth_led_spd_pins>;
+  /delete-property/ pinctrl-names;
+  /delete-property/ pinctrl-0;
+};
+
+
+/* re-label GPIOs to represent p44-base-omega4 module specific (and unalterable) pin use */
+
+&gpio0 {
+  gpio-line-names =
+    "G0_A0", "G0_A1", "OLED_RES_N", "Wifi_PWR", "G0_A4", "G0_A5", "G0_A6";
+};
+
+
+
+/**********FLASH**********/
+
+// is on the omega4 module itself, not defined here
+
+
+/**********SDMMC**********/
+
+// not in use on p44-xx-base-omega4
+
+/**********ETH**********/
+&gmac {
+	status = "okay";
+};
+
+
+/**********USB**********/
+
+&u2phy {
+	status = "okay";
+};
+
+&u2phy_otg {
+	rockchip,vbus-always-on;
+	status = "okay";
+};
+
+&usbdrd {
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	status = "okay";
+};
+
+
+/**********I2C**********/
+
+// none by default
+
+/**********SPI**********/
+
+// none by default
+
+
+/**********UART**********/
+
+// UART0  M0 is the system console at uboot and early kernel stage,
+// but in normal operation these pins are in use for the i2c0 OLED
+// (if assembled) so must be disabled in the DTS to allow overlays.
+&uart0 {
+	status = "disabled";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart0m0_xfer_pins>;
+};
+
+
+// UART1 M1 is available, connected to WS232 and expansion connector
+// &uart1 {
+// 	status = "okay";
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&uart1m1_xfer_pins>;
+// };
+
+// UART2 M1 might be connected to BT HCI with solder jumpers on p44-xx-base-omega4
+// but is connected to WS232 and expansion connector (EnOceanPi compatible pins)
+// &uart2 {
+// 	status = "okay";
+// 	pinctrl-names = "default";
+// 	pinctrl-0 = <&uart2m1_xfer_pins>;
+// };
+
+&rtc {
+	status = "okay";
+};
+
+

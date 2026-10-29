@@ -1,0 +1,387 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2024 Rockchip Electronics Co., Ltd
+ * Copyright (c) 2025 Onion Corporation
+ */
+#include <dt-bindings/input/input.h>
+
+/ {
+	chosen {
+		/*  bootargs = "earlycon=uart8250,mmio32,0x20540000 console=ttyFIQ0 root=/dev/mmcblk0p5 rootfstype=ext4 rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=32K"; */
+		bootargs = "earlycon=uart8250,mmio32,0x20540000 console=ttyS0,115200";
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		hpmcu_rtos: hpmcu-rtos@1000000 {
+			reg = <0x01000000 0x40000>;
+			no-map;
+		};
+	};
+
+	sgrf: syscon@20250000 {
+		compatible = "rockchip,rv1103b-sgrf", "syscon";
+		reg = <0x20250000 0x1000>;
+	};
+
+	hpmcu_loader: hpmcu-loader {
+		compatible = "onion,omega4-hpmcu-loader";
+		memory-region = <&hpmcu_rtos>;
+		rockchip,ioc = <&ioc>;
+		rockchip,grf = <&grf>;
+		rockchip,sgrf = <&sgrf>;
+		rockchip,cache-peri-start = <0x20000000>;
+		rockchip,cache-peri-end = <0x210fffff>;
+		rockchip,cache-misc = <0x00080000>;
+		rockchip,use-sip;
+		rockchip,sip-code-addr = <0x01000000>;
+		rockchip,sip-sram-addr = <0x01000000>;
+		rockchip,program-grf-map;
+		entry-addr = <0x01000000>;
+		heartbeat-offset = <0x804>;
+		reg = <0x20250080 0x4>, <0x20150218 0x4>;
+		reg-names = "boot-addr", "cache-status";
+		resets = <&cru SRST_RESETN_HPMCU_FULL_CLUSTER>,
+			 <&cru SRST_RESETN_HPMCU_PWUP>,
+			 <&cru SRST_RESETN_HPMCU_ONLY_CORE>;
+		reset-names = "cluster", "pwup", "core";
+		clocks = <&cru HCLK_HPMCU>,
+			 <&cru CLK_HPMCU>,
+			 <&cru PCLK_HPMCU_INTMUX>,
+			 <&cru PCLK_HPMCU_MAILBOX>,
+			 <&cru PCLK_WDT_HPMCU>,
+			 <&cru TCLK_WDT_HPMCU>,
+			 <&cru HCLK_CACHE>,
+			 <&cru ACLK_SYS_SRAM>;
+		clock-names = "hclk", "core", "intmux", "pclk-mailbox",
+			      "pclk-wdt", "tclk-wdt", "hclk-cache", "aclk-sram";
+		firmware-name = "omega4/rv1103b-hpmcu-bare.bin";
+		boot-offset = <0x0>;
+		auto-boot;
+		status = "okay";
+	};
+
+	hpmcu_mailbox: hpmcu-mailbox {
+		compatible = "onion,omega4-hpmcu-mailbox";
+		mboxes = <&hpmcu_mbox0 0>;
+		mbox-names = "hpmcu";
+		auto-ping;
+		status = "okay";
+	};
+
+	acodec_sound: acodec-sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "rv1103b-acodec";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,cpu {
+			sound-dai = <&sai>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&acodec>;
+		};
+	};
+
+	restart-poweroff {
+		compatible = "restart-poweroff";
+	};
+
+	vcc_sys: vcc-sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_sys";
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	vcc_1v8: vcc-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_1v8";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&vcc_sys>;
+	};
+
+	vcc_3v3: vcc-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_3v3";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc_sys>;
+	};
+
+	vdd_logic: vdd-logic {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd_logic";
+		regulator-min-microvolt = <900000>;
+		regulator-max-microvolt = <900000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_sys>;
+	};
+
+	vdd_npu: vdd_arm: vdd-arm {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd_arm";
+		regulator-min-microvolt = <950000>;
+		regulator-max-microvolt = <950000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_sys>;
+  };
+
+	/* Omega4 module: Wi-Fi/BT (AIC8800 SDIO) */
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_pwr_wf>;
+		post-power-on-delay-ms = <300>;
+		/* real Wi-Fi power/reset: PWR_WF = GPIO0_A3 */
+		reset-gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_LOW>;
+	};
+
+	wifi: wifi {
+		compatible = "wlan-platdata";
+		wifi_chip_type = "aic8800";
+		status = "okay";
+	};
+};
+
+
+
+/* re-label GPIOs to represent Omega4 module specific (and unalterable) pin use */
+
+&gpio0 {
+  gpio-line-names =
+    "G0_A0", "G0_A1", "G0_A2", "Wifi_PWR", "G0_A4", "G0_A5", "G0_A6";
+};
+
+&gpio1 {
+  gpio-line-names =
+    "FSPI_D3", "FSPI_D0_BOOT", "FSPI_D1", "FSPI_D2", "FSPI_CLK", "FSPI_CMD", "G1_A6", "G1_A7",
+    "G1_B0", "G1_B1", "G1_B2", "G1_B3", "G1_B4", "G1_B5", "G1_B6", "G1_B7",
+    "G1_C0", "G1_C1", "G1_C2", "G1_C3", "G1_C4", "G1_C5", "G1_C6", "",
+    "G1_D0", "G1_D1", "G1_D2", "G1_D3", "G1_D4", "G1_D5";
+};
+
+&gpio2 {
+  gpio-line-names =
+    "Wifi_D1", "Wifi_D0", "Wifi_CLK", "Wifi_CMD", "Wifi_D3", "Wifi_D2", "G2_A6", "G2_A7",
+    "G2_B0", "G2_B1", "G2_B2", "G2_B3";
+};
+
+
+/* default enables/disables */
+
+
+&acodec {
+	status = "okay";
+};
+
+&hpmcu_mbox0 {
+	status = "okay";
+};
+
+&cpu0 {
+	cpu-supply = <&vdd_arm>;
+};
+
+&fiq_debugger {
+	rockchip,irq-mode-enable = <1>;
+	status = "okay";
+};
+
+&gmac {
+	status = "okay";
+	nvmem-cells = <&macphy_bgs>, <&macaddr_env_ethaddr 0>;
+	nvmem-cell-names = "bgs", "mac-address";
+};
+
+&mpp_srv {
+	status = "okay";
+};
+
+&mpp_vcodec {
+	status = "okay";
+};
+
+&npu {
+	rknpu-supply = <&vdd_npu>;
+	status = "okay";
+};
+
+// we might want to have this as GPIO
+&pwm0_4ch_0 {
+	status = "disabled";
+};
+
+// we might want to have this as GPIO
+&pwm0_4ch_3 {
+	status = "disabled";
+};
+
+&rga2 {
+	status = "okay";
+};
+
+&rkdvbm {
+	status = "okay";
+};
+
+&rkvenc {
+	status = "okay";
+};
+
+&rmii_phy {
+	bgs,increment = <0>;
+};
+
+&rng {
+	status = "okay";
+};
+
+&rtc {
+	status = "okay";
+};
+
+&sai {
+	status = "okay";
+};
+
+&saradc{
+	status = "okay";
+	vref-supply = <&vcc_1v8>;
+};
+
+&tsadc {
+	status = "okay";
+};
+
+// UART0 can be exposed with M0 or M2, so we do not set a default
+&uart0 {
+ 	status = "disabled";
+};
+
+// UART1 is only exposed on Omega4 in M1 state, so set this as default
+&uart1 {
+	status = "disabled";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart1m1_xfer_pins>;
+};
+
+&u2phy {
+	status = "okay";
+};
+
+&u2phy_otg {
+	rockchip,vbus-always-on;
+	rockchip,force-vbus-valid;
+	status = "okay";
+};
+
+&usbdrd {
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	extcon = <&u2phy>;
+	usb-role-switch;
+	role-switch-default-mode = "host";
+	status = "okay";
+};
+
+&pinctrl {
+	sdio-pwrseq {
+		wifi_pwr_wf: wifi-pwr-wf {
+			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+
+
+/* Omega4 module specific HW use */
+
+&sdmmc1 {
+	max-frequency = <45000000>;
+	supports-sdio;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	rockchip,default-sample-phase = <270>;
+
+	non-removable;
+	no-1-8-v;
+	no-sd;
+    no-mmc;
+    no-sd-uhs;
+
+	mmc-pwrseq = <&sdio_pwrseq>;
+	// vmmc-supply = <&vcc3v3_sd>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc1_cmd_pins &sdmmc1_clk_pins &sdmmc1_bus4_pins>;
+	status = "okay";
+};
+
+// UART2 previously routed to BT; no longer used when BT runs over SDIO
+&uart2 {
+	status = "disabled";
+};
+
+// FSPI0 (aliased as SPI1) is connected to on-board W25N02KVZEIR QSPI NAND flash
+&fspi0 {
+	status = "okay";
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-max-frequency = <75000000>;
+		spi-rx-bus-width = <4>; // can fast quad read
+		spi-tx-bus-width = <1>; // cannot quad write
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				compatible = "u-boot,env";
+				label = "env";
+				reg = <0x00000000 0x00040000>;
+
+				macaddr_env_ethaddr: ethaddr {
+					#nvmem-cell-cells = <1>;
+				};
+			};
+
+			partition@40000 {
+				label = "idblock";
+				reg = <0x00040000 0x00100000>;
+				read-only;
+			};
+
+			partition@140000 {
+				label = "uboot";
+				reg = <0x00140000 0x00100000>;
+				read-only;
+			};
+
+			partition@240000 {
+				label = "boot";
+				reg = <0x00240000 0x00800000>;
+			};
+
+			partition@a40000 {
+				label = "ubi";
+				reg = <0x00a40000 0x0f5c0000>;
+			};
+		};
+	};
+};
