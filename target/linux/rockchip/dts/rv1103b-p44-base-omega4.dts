@@ -65,6 +65,24 @@
 };
 
 
+/* Definitions only: pins are claimed when selected by an application overlay. */
+&pinctrl {
+  p44-ws232 {
+    /* LED_DATA_0_N */
+    uart0m2_ws232_pins: uart0m2-ws232-pins {
+      rockchip,pins = <1 RK_PB4 2 &pcfg_pull_up>;
+    };
+    /* LED_DATA_1_N */
+    uart1m1_ws232_pins: uart1m1-ws232-pins {
+      rockchip,pins = <1 RK_PB0 2 &pcfg_pull_up>;
+    };
+    /* LED_DATA_2_N */
+    uart2m1_ws232_pins: uart2m1-ws232-pins {
+      rockchip,pins = <2 RK_PB0 1 &pcfg_pull_up>;
+    };
+  };
+};
+
 
 /**********FLASH**********/
 
